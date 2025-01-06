@@ -280,43 +280,54 @@ img.src = "data:image/svg+xml;base64," + btoa(svgData);
 }
 </script>
 
-    <script>
-        function captureAndGeneratePDF() {
-            // Mengambil elemen yang ingin diubah menjadi PDF
-            const content = document.getElementById("shippingLabel");
+<script>
+    // Fungsi untuk menangkap elemen menggunakan html2canvas dan mengubahnya menjadi PDF
+    async function captureAndGeneratePDF() {
+        const content = document.getElementById("shippingLabel"); // Elemen yang ingin diubah menjadi PDF
+        const { jsPDF } = window.jspdf; // Akses jsPDF
+        const pdf = new jsPDF();
 
-            // Membuat objek jsPDF
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
+        // Tangkap elemen sebagai gambar dengan html2canvas
+        await html2canvas(content, { scale: 3 }).then((canvas) => {
+            const imgData = canvas.toDataURL("image/png"); // Konversi ke gambar
+            const imgWidth = 190; // Lebar gambar dalam mm (A4 width - margin)
+            const imgHeight = (canvas.height * imgWidth) / canvas.width; // Rasio tinggi berdasarkan lebar
 
-            // Menambahkan konten HTML ke PDF
-            doc.html(content, {
-                callback: function (doc) {
-                    // Menyimpan PDF
-                    doc.save("shipping_label.pdf");
-                },
-                x: 10,  // Mengatur posisi x pada PDF
-                y: 10,  // Mengatur posisi y pada PDF
-            });
-        }
-    </script>
+            pdf.addImage(imgData, "PNG", 10, 10, imgWidth, imgHeight); // Tambahkan gambar ke PDF
+        });
 
-    <script>
-        document.getElementById('printButton').addEventListener('click', function () {
-    const label = document.getElementById('shippingLabel').innerHTML;
-    const originalContent = document.body.innerHTML;
+        // Unduh PDF
+        pdf.save("shipping_label.pdf");
+    }
 
-    // Replace the body content with the label content
-    document.body.innerHTML = label;
+    // Fungsi untuk mencetak label tanpa merusak halaman
+    document.getElementById("printButton").addEventListener("click", async function () {
+        const content = document.getElementById("shippingLabel"); // Elemen yang ingin dicetak
+        const cloneContent = content.cloneNode(true); // Buat salinan elemen
 
-    // Trigger the print dialog
-    window.print();
+        // Buat jendela baru untuk pencetakan
+        const printWindow = window.open("", "_blank");
 
-    // Restore the original content
-    document.body.innerHTML = originalContent;
+        // Tambahkan konten ke dalam jendela cetak
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Cetak Label</title>
+                <style>
+                    body { margin: 0; padding: 0; }
+                </style>
+            </head>
+            <body>${cloneContent.outerHTML}</body>
+            </html>
+        `);
 
-});
-
-    </script>
+        printWindow.document.close(); // Tutup dokumen agar dapat dirender
+        printWindow.onload = () => {
+            printWindow.print(); // Jalankan perintah cetak
+            printWindow.close(); // Tutup jendela setelah selesai
+        };
+    });
+</script>
 </body>
 </html>
