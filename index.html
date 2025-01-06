@@ -237,20 +237,39 @@ function parseAndFill() {
         displayValue: true
     });
 
-        // Convert SVG barcode to PNG
-    const svgElement = document.getElementById("barcode");
-    const svgData = new XMLSerializer().serializeToString(svgElement);
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    const img = new Image();
-    img.onload = function () {
-        canvas.width = this.width;
-        canvas.height = this.height;
-        ctx.drawImage(img, 0, 0);
-        const pngFile = canvas.toDataURL("image/png");
-        document.getElementById("barcodeContainer").innerHTML = `<img src="${pngFile}" alt="barcode">`;
-    };
-    img.src = "data:image/svg+xml;base64," + btoa(svgData);
+const svgElement = document.getElementById("barcode");
+const svgData = new XMLSerializer().serializeToString(svgElement);
+
+// Buat elemen canvas
+const canvas = document.createElement("canvas");
+const ctx = canvas.getContext("2d");
+
+// Faktor skala untuk meningkatkan kualitas rendering (misalnya, 3x)
+const scale = 3;  // Anda bisa menyesuaikan angka ini untuk meningkatkan kualitas lebih banyak
+const width = svgElement.getBoundingClientRect().width;  // Dimensi asli SVG
+const height = svgElement.getBoundingClientRect().height; // Dimensi asli SVG
+
+// Atur ukuran canvas untuk memperbesar resolusi
+canvas.width = width * scale;  // Tingkatkan lebar canvas
+canvas.height = height * scale; // Tingkatkan tinggi canvas
+
+// Terapkan skala untuk rendering lebih tajam
+ctx.scale(scale, scale);  // Skala digunakan untuk meningkatkan kualitas
+
+// Konversi SVG ke gambar
+const img = new Image();
+img.onload = function () {
+    // Gambar pada canvas dengan resolusi tinggi
+    ctx.drawImage(img, 0, 0, width, height);  // Gambar sesuai ukuran asli SVG
+
+    // Konversi canvas ke PNG (Data URL)
+    const pngFile = canvas.toDataURL("image/png");
+
+    // Ganti elemen barcode dengan gambar PNG yang sudah dijernihkan
+    document.getElementById("barcodeContainer").innerHTML = `<img src="${pngFile}" alt="barcode">`;
+};
+img.src = "data:image/svg+xml;base64," + btoa(svgData);
+
     
     // document.getElementById('inputText').value = ''; // Mengosongkan input
 }
