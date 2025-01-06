@@ -136,8 +136,9 @@
                     </div>
                 </div>
                 <hr>
-                <div id="barcodeContainer" class="barcode">
+                <div class="barcode">
                     <svg id="barcode"></svg>
+                    <div>No. AWB: <span id="displayResi"></span></div>
                 </div>
             </div>
         </div>
@@ -213,6 +214,7 @@ function parseAndFill() {
     document.getElementById('displayRecipientName').textContent = nama;
     document.getElementById('displayRecipientNumber').textContent = phoneMatch || '';
     document.getElementById('displayAddress').textContent = address;
+    document.getElementById('displayResi').textContent = trackingNumber;
 
     const kurirInputs = document.querySelectorAll('input[name="kurir"]');
     let selectedKurir = '';
@@ -229,12 +231,12 @@ function parseAndFill() {
         return;
     }
 
-    JsBarcode("#barcode", `No.Resi: ${trackingNumber}`, {
+    JsBarcode("#barcode", trackingNumber, {
         format: "CODE128",
         lineColor: "#000",
         width: 1,
         height: 40,
-        displayValue: true
+        displayValue: false
     });
 
 const svgElement = document.getElementById("barcode");
