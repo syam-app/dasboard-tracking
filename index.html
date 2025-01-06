@@ -136,7 +136,7 @@
                     </div>
                 </div>
                 <hr>
-                <div id="barcodeContainer" class="barcode">
+                <div class="barcode">
                     <svg id="barcode"></svg>
                 </div>
             </div>
@@ -229,29 +229,13 @@ function parseAndFill() {
         return;
     }
 
-    JsBarcode("#barcode", `No. resi: ${trackingNumber}`, {
+    JsBarcode("#barcode", `No.Resi: ${trackingNumber}`, {
         format: "CODE128",
         lineColor: "#000",
         width: 1,
         height: 40,
         displayValue: true
     });
-
-        // Convert SVG barcode to PNG
-    const svgElement = document.getElementById("barcode");
-    const svgData = new XMLSerializer().serializeToString(svgElement);
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    const img = new Image();
-    img.onload = function () {
-        canvas.width = this.width;
-        canvas.height = this.height;
-        ctx.drawImage(img, 0, 0);
-        const pngFile = canvas.toDataURL("image/png");
-        document.getElementById("barcodeContainer").innerHTML = `<img src="${pngFile}" alt="barcode">`;
-    };
-    img.src = "data:image/svg+xml;base64," + btoa(svgData);
-
     
     // document.getElementById('inputText').value = ''; // Mengosongkan input
 }
