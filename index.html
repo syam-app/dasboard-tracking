@@ -249,7 +249,7 @@ const scale = 3;  // Anda bisa menyesuaikan angka ini untuk meningkatkan kualita
 const width = svgElement.getBoundingClientRect().width;  // Dimensi asli SVG
 const height = svgElement.getBoundingClientRect().height; // Dimensi asli SVG
 
-// Atur ukuran canvas untuk memperbesar resolusi
+// Atur ukuran canvas untuk memperbesar resolusi (tidak akan mengubah ukuran tampilan)
 canvas.width = width * scale;  // Tingkatkan lebar canvas
 canvas.height = height * scale; // Tingkatkan tinggi canvas
 
@@ -266,7 +266,7 @@ img.onload = function () {
     const pngFile = canvas.toDataURL("image/png");
 
     // Ganti elemen barcode dengan gambar PNG yang sudah dijernihkan
-    document.getElementById("barcodeContainer").innerHTML = `<img src="${pngFile}" alt="barcode">`;
+    document.getElementById("barcodeContainer").innerHTML = `<img src="${pngFile}" alt="barcode" style="width: ${width}px; height: ${height}px;">`;
 };
 img.src = "data:image/svg+xml;base64," + btoa(svgData);
 
