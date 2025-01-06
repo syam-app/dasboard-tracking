@@ -53,24 +53,18 @@
         .details p {
             margin: 0;
         }
-      @media print {
-    body {
-        visibility: hidden; /* Sembunyikan seluruh konten */
-        margin: 0; /* Hilangkan margin */
-        padding: 0; /* Hilangkan padding */
+@media print {
+    body * {
+        display: none; /* Sembunyikan semua elemen */
     }
 
     #shippingLabel {
-        visibility: visible; /* Tampilkan hanya elemen label */
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%; /* Pastikan lebar label sesuai */
-        margin: 0 auto;
-        page-break-inside: avoid; /* Hindari label terpotong */
+        display: block !important; /* Tampilkan hanya elemen label */
+        margin: 0 auto; /* Pusatkan elemen pada halaman cetak */
+        width: 100%; /* Pastikan elemen memanfaatkan seluruh lebar halaman */
+        page-break-inside: avoid; /* Hindari terpotong di antara halaman */
     }
 }
-
 
     </style>
 </head>
