@@ -281,53 +281,66 @@ img.src = "data:image/svg+xml;base64," + btoa(svgData);
 </script>
 
 <script>
-    // Fungsi untuk menangkap elemen menggunakan html2canvas dan mengubahnya menjadi PDF
-    async function captureAndGeneratePDF() {
-        const content = document.getElementById("shippingLabel"); // Elemen yang ingin diubah menjadi PDF
-        const { jsPDF } = window.jspdf; // Akses jsPDF
-        const pdf = new jsPDF();
+async function captureAndGeneratePDF() {
+    const content = document.getElementById("shippingLabel"); // Elemen yang akan diubah ke PDF
 
-        // Tangkap elemen sebagai gambar dengan html2canvas
-        await html2canvas(content, { scale: 3 }).then((canvas) => {
-            const imgData = canvas.toDataURL("image/png"); // Konversi ke gambar
-            const imgWidth = 190; // Lebar gambar dalam mm (A4 width - margin)
-            const imgHeight = (canvas.height * imgWidth) / canvas.width; // Rasio tinggi berdasarkan lebar
+    // Tangkap elemen menggunakan html2canvas
+    await html2canvas(content, { scale: 3 }).then((canvas) => {
+        const imgData = canvas.toDataURL("image/png"); // Konversi canvas ke gambar
+        const pdfWidth = 10; // Lebar PDF dalam cm
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width; // Hitung tinggi PDF sesuai rasio
 
-            pdf.addImage(imgData, "PNG", 10, 10, imgWidth, imgHeight); // Tambahkan gambar ke PDF
+        // Buat PDF dengan ukuran yang diinginkan
+        const pdf = new jsPDF({
+            orientation: "portrait",
+            unit: "cm",
+            format: [pdfWidth, pdfHeight], // Tentukan ukuran PDF
         });
 
-        // Unduh PDF
-        pdf.save("shipping_label.pdf");
-    }
-
-    // Fungsi untuk mencetak label tanpa merusak halaman
-    document.getElementById("printButton").addEventListener("click", async function () {
-        const content = document.getElementById("shippingLabel"); // Elemen yang ingin dicetak
-        const cloneContent = content.cloneNode(true); // Buat salinan elemen
-
-        // Buat jendela baru untuk pencetakan
-        const printWindow = window.open("", "_blank");
-
-        // Tambahkan konten ke dalam jendela cetak
-        printWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Cetak Label</title>
-                <style>
-                    body { margin: 0; padding: 0; }
-                </style>
-            </head>
-            <body>${cloneContent.outerHTML}</body>
-            </html>
-        `);
-
-        printWindow.document.close(); // Tutup dokumen agar dapat dirender
-        printWindow.onload = () => {
-            printWindow.print(); // Jalankan perintah cetak
-            printWindow.close(); // Tutup jendela setelah selesai
-        };
+        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight); // Tambahkan gambar ke PDF
+        pdf.save("shipping_label.pdf"); // Unduh file PDF
     });
+}
+
+
+document.getElementById("printButton").addEventListener("click", function () {
+    const content = document.getElementById("shippingLabel"); // Elemen yang ingin dicetak
+    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')); // Ambil semua style dan stylesheet
+    const printWindow = window.open("", "_blank"); // Buat jendela baru
+
+    // Tambahkan gaya dan konten ke dalam dokumen baru
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Cetak Label</title>
+            ${styles
+                .map((style) => {
+                    if (style.tagName === "STYLE") {
+                        return `<style>${style.innerHTML}</style>`;
+                    } else if (style.tagName === "LINK") {
+                        return `<link href="${style.href}" rel="stylesheet" type="text/css">`;
+                    }
+                    return "";
+                })
+                .join("\n")}
+        </head>
+        <body>${content.outerHTML}</body>
+        </html>
+    `);
+
+    // Tutup dokumen baru agar dapat dirender
+    printWindow.document.close();
+
+    // Tunggu hingga jendela selesai dimuat sebelum mencetak
+    printWindow.onload = () => {
+        printWindow.print();
+        printWindow.close(); // Tutup jendela setelah selesai mencetak
+    };
+});
+
 </script>
 </body>
 </html>
