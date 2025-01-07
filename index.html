@@ -8,8 +8,6 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         body{
         max-width:500px;
@@ -99,8 +97,6 @@
                 <div class="d-flex justify-content-between mt-3">
                     <button type="button" class="btn btn-primary" onclick="parseAndFill()">
                         <i class="bi bi-journal-text"></i> Buat Label</button>
-                    <button type="button" class="btn btn-outline-dark" onclick="captureAndGeneratePDF()">
-                        <i class="bi bi-file-earmark-pdf"></i> Unduh Pdf</button>
                     <button id="printButton" class="btn btn-success">
                         <i class="bi bi-printer"></i> Print Label
                     </button>
@@ -282,29 +278,6 @@ img.src = "data:image/svg+xml;base64," + btoa(svgData);
 </script>
 
 <script>
-async function captureAndGeneratePDF() {
-    const content = document.getElementById("shippingLabel"); // Elemen yang akan diubah ke PDF
-
-    // Tangkap elemen menggunakan html2canvas
-    const canvas = await html2canvas(content, { scale: 3 }); // Tingkatkan kualitas dengan scale
-
-    const imgData = canvas.toDataURL("image/png"); // Konversi canvas ke gambar
-    const pdfWidth = 10; // Lebar PDF dalam cm
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width; // Hitung tinggi PDF sesuai rasio
-
-    // Buat PDF dengan ukuran yang diinginkan
-    const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "cm",
-        format: [pdfWidth, pdfHeight], // Tentukan ukuran PDF
-    });
-
-    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight); // Tambahkan gambar ke PDF
-    pdf.save("shipping_label.pdf"); // Unduh file PDF
-}
-
-
-
 document.getElementById("printButton").addEventListener("click", function () {
     const content = document.getElementById("shippingLabel"); // Elemen yang ingin dicetak
     const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')); // Ambil semua style dan stylesheet
