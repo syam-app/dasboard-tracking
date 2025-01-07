@@ -286,22 +286,23 @@ async function captureAndGeneratePDF() {
     const content = document.getElementById("shippingLabel"); // Elemen yang akan diubah ke PDF
 
     // Tangkap elemen menggunakan html2canvas
-    await html2canvas(content, { scale: 3 }).then((canvas) => {
-        const imgData = canvas.toDataURL("image/png"); // Konversi canvas ke gambar
-        const pdfWidth = 10; // Lebar PDF dalam cm
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width; // Hitung tinggi PDF sesuai rasio
+    const canvas = await html2canvas(content, { scale: 3 }); // Tingkatkan kualitas dengan scale
 
-        // Buat PDF dengan ukuran yang diinginkan
-        const pdf = new jsPDF({
-            orientation: "portrait",
-            unit: "cm",
-            format: [pdfWidth, pdfHeight], // Tentukan ukuran PDF
-        });
+    const imgData = canvas.toDataURL("image/png"); // Konversi canvas ke gambar
+    const pdfWidth = 10; // Lebar PDF dalam cm
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width; // Hitung tinggi PDF sesuai rasio
 
-        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight); // Tambahkan gambar ke PDF
-        pdf.save("shipping_label.pdf"); // Unduh file PDF
+    // Buat PDF dengan ukuran yang diinginkan
+    const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "cm",
+        format: [pdfWidth, pdfHeight], // Tentukan ukuran PDF
     });
+
+    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight); // Tambahkan gambar ke PDF
+    pdf.save("shipping_label.pdf"); // Unduh file PDF
 }
+
 
 
 document.getElementById("printButton").addEventListener("click", function () {
