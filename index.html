@@ -280,61 +280,56 @@ img.src = "data:image/svg+xml;base64," + btoa(svgData);
 <script>
 document.getElementById("printButton").addEventListener("click", function () {
     const content = document.getElementById("shippingLabel"); // Elemen yang ingin dicetak
-    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')); // Ambil semua style dan stylesheet
-    const printWindow = window.open("", "_blank"); // Buat jendela baru
+    const originalContent = document.body.innerHTML; // Simpan seluruh konten asli halaman
 
-    // Tambahkan gaya dan konten ke dalam dokumen baru
-    printWindow.document.write(`
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Cetak Label</title>
-            ${styles
-                .map((style) => {
-                    if (style.tagName === "STYLE") {
-                        return `<style>${style.innerHTML}</style>`;
-                    } else if (style.tagName === "LINK") {
-                        return `<link href="${style.href}" rel="stylesheet" type="text/css">`;
-                    }
-                    return "";
-                })
-                .join("\n")}
-            <style>
-                /* Pastikan responsivitas untuk mobile */
+    // Ambil semua style dan stylesheet yang dimuat
+    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(style => {
+        if (style.tagName === "STYLE") {
+            return `<style>${style.innerHTML}</style>`;  // Menyertakan style inline
+        } else if (style.tagName === "LINK") {
+            return `<link href="${style.href}" rel="stylesheet" type="text/css">`;  // Menyertakan link stylesheet
+        }
+        return '';
+    }).join("\n");
+
+    // Ganti konten halaman dengan elemen yang akan dicetak dan sertakan semua style yang diperlukan
+    document.body.innerHTML = `
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                font-family: Arial, sans-serif;
+            }
+            @media print {
                 body {
-                    font-family: Arial, sans-serif;
                     margin: 0;
                     padding: 0;
                 }
-                @media print {
-                    body {
-                        margin: 0;
-                        padding: 0;
-                    }
+                .sembunyikan {
+                    display: none !important;
                 }
-            </style>
-        </head>
-        <body>${content.outerHTML}</body>
-        </html>
-    `);
+            }
+        </style>
+        ${styles}  <!-- Sertakan semua stylesheets -->
+        ${content.outerHTML}
+    `;
 
-    // Tutup dokumen baru agar dapat dirender
-    printWindow.document.close();
+    // Panggil dialog cetak
+    window.print();
 
-    // Tunggu hingga jendela selesai dimuat sebelum mencetak
-    printWindow.onload = () => {
-        try {
-            printWindow.print(); // Jalankan fungsi cetak
-        } catch (error) {
-            alert("Perangkat Anda mungkin tidak mendukung fitur cetak langsung. Unduh file PDF sebagai alternatif.");
-        } finally {
-            printWindow.close(); // Tutup jendela setelah selesai mencetak
-        }
-    };
+    // Kembalikan konten asli halaman setelah cetak selesai
+    document.body.innerHTML = originalContent;
+
+    // Inisialisasi ulang event listener jika diperlukan
+    reinitializeEventListeners();
 });
 
+function reinitializeEventListeners() {
+    // Tambahkan ulang event listener yang diperlukan setelah konten dikembalikan
+    document.getElementById("printButton").addEventListener("click", function () {
+        // Logika ulang untuk cetak
+    });
+}
 
 </script>
 </body>
