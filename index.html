@@ -301,6 +301,20 @@ document.getElementById("printButton").addEventListener("click", function () {
                     return "";
                 })
                 .join("\n")}
+            <style>
+                /* Pastikan responsivitas untuk mobile */
+                body {
+                    font-family: Arial, sans-serif;
+                    margin: 0;
+                    padding: 0;
+                }
+                @media print {
+                    body {
+                        margin: 0;
+                        padding: 0;
+                    }
+                }
+            </style>
         </head>
         <body>${content.outerHTML}</body>
         </html>
@@ -311,10 +325,16 @@ document.getElementById("printButton").addEventListener("click", function () {
 
     // Tunggu hingga jendela selesai dimuat sebelum mencetak
     printWindow.onload = () => {
-        printWindow.print();
-        printWindow.close(); // Tutup jendela setelah selesai mencetak
+        try {
+            printWindow.print(); // Jalankan fungsi cetak
+        } catch (error) {
+            alert("Perangkat Anda mungkin tidak mendukung fitur cetak langsung. Unduh file PDF sebagai alternatif.");
+        } finally {
+            printWindow.close(); // Tutup jendela setelah selesai mencetak
+        }
     };
 });
+
 
 </script>
 </body>
