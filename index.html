@@ -58,6 +58,13 @@
         display: none; 
     }
 }
+#barcodeContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%; /* Sesuaikan dengan tinggi container */
+}
 
     </style>
 </head>
@@ -137,7 +144,7 @@
                 </div>
                 <hr>
                 <div id="barcodeContainer" class="barcode">
-                    <svg id="barcode"></svg>
+                    <svg id="barcode" viewBox="0 0 200 100" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg"><!-- Konten SVG --></svg>
                 </div>
                 <div class="text-center">No. AWB: <span id="displayResi"></span></div>
             </div>
@@ -235,7 +242,7 @@ function parseAndFill() {
         format: "CODE128",
         lineColor: "#000",
         width: 1.5,
-        height: 40,
+        height: 25,
         displayValue: false
     });
 
