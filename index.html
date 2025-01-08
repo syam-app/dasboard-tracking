@@ -234,7 +234,7 @@ function parseAndFill() {
     JsBarcode("#barcode", trackingNumber, {
         format: "CODE128",
         lineColor: "#000",
-        width: 1,
+        width: 1.5,
         height: 40,
         displayValue: false
     });
@@ -247,7 +247,7 @@ const canvas = document.createElement("canvas");
 const ctx = canvas.getContext("2d");
 
 // Faktor skala untuk meningkatkan kualitas rendering (misalnya, 3x)
-const scale = 3;  // Anda bisa menyesuaikan angka ini untuk meningkatkan kualitas lebih banyak
+const scale = 4;  // Anda bisa menyesuaikan angka ini untuk meningkatkan kualitas lebih banyak
 const width = svgElement.getBoundingClientRect().width;  // Dimensi asli SVG
 const height = svgElement.getBoundingClientRect().height; // Dimensi asli SVG
 
@@ -280,56 +280,60 @@ img.src = "data:image/svg+xml;base64," + btoa(svgData);
 <script>
 document.getElementById("printButton").addEventListener("click", function () {
     const content = document.getElementById("shippingLabel"); // Elemen yang ingin dicetak
-    const originalContent = document.body.innerHTML; // Simpan seluruh konten asli halaman
-
-    // Ambil semua style dan stylesheet yang dimuat
     const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(style => {
         if (style.tagName === "STYLE") {
-            return `<style>${style.innerHTML}</style>`;  // Menyertakan style inline
+            return `<style>${style.innerHTML}</style>`; // Menyertakan style inline
         } else if (style.tagName === "LINK") {
-            return `<link href="${style.href}" rel="stylesheet" type="text/css">`;  // Menyertakan link stylesheet
+            return `<link href="${style.href}" rel="stylesheet" type="text/css">`; // Menyertakan link stylesheet
         }
         return '';
     }).join("\n");
 
-    // Ganti konten halaman dengan elemen yang akan dicetak dan sertakan semua style yang diperlukan
-    document.body.innerHTML = `
-        <style>
-            body {
-                margin: 0;
-                padding: 0;
-                font-family: Arial, sans-serif;
-            }
-            @media print {
-                body {
-                    margin: 0;
-                    padding: 0;
-                }
-                .sembunyikan {
-                    display: none !important;
-                }
-            }
-        </style>
-        ${styles}  <!-- Sertakan semua stylesheets -->
-        ${content.outerHTML}
+    // Membuka jendela baru
+    const printWindow = window.open("", "_blank");
+
+    // Membuat konten untuk jendela baru
+    const printContent = `
+        <html>
+            <head>
+                <title>Print Preview</title>
+                ${styles} <!-- Sertakan semua stylesheets -->
+                <style>
+                    body {
+                        margin: 0;
+                        padding: 0;
+                        font-family: Arial, sans-serif;
+                    }
+                    @media print {
+                        body {
+                            margin: 0;
+                            padding: 0;
+                        }
+                        .sembunyikan {
+                            display: none !important;
+                        }
+                    }
+                </style>
+            </head>
+            <body>
+                ${content.outerHTML}
+            </body>
+        </html>
     `;
 
-    // Panggil dialog cetak
-    window.print();
+    // Menulis konten ke dalam jendela baru
+    printWindow.document.open();
+    printWindow.document.write(printContent);
+    printWindow.document.close();
 
-    // Kembalikan konten asli halaman setelah cetak selesai
-    document.body.innerHTML = originalContent;
-
-    // Inisialisasi ulang event listener jika diperlukan
-    reinitializeEventListeners();
+    // Menunggu sampai halaman dimuat dan memanggil dialog cetak
+    printWindow.onload = function () {
+        printWindow.print();
+        printWindow.onafterprint = function () {
+            printWindow.close(); // Tutup jendela setelah selesai mencetak
+        };
+    };
 });
-
-function reinitializeEventListeners() {
-    // Tambahkan ulang event listener yang diperlukan setelah konten dikembalikan
-    document.getElementById("printButton").addEventListener("click", function () {
-        // Logika ulang untuk cetak
-    });
-}
 
 </script>
 </body>
