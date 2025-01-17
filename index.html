@@ -64,7 +64,16 @@
     align-items: center;
     width: 100%;
 }
-
+.container{
+    max-height: 100mm;
+}
+hr.border{
+    border: 1.2px solid black !important;
+    opacity: 1 !important;
+}
+#shippingLabel{
+    color: black;
+}
     </style>
 </head>
 <body>
@@ -120,9 +129,9 @@
                     </div>
                     <div id="displayImgKurir" class="col-2 border border-dark border-1 p-2 rounded"><img src="courier.png" alt=""></div>
                 </div>
-                <hr>
+                <hr class="border">
                 <div class="row" style="font-size: 12px;line-height: 1.2em;">
-                    <div class="col-7">
+                    <div class="col-8">
                         <div class="details">
                             PENERIMA :
                             <p><span id="displayRecipientName" class="fw-bold" style="font-size: 12px;line-height: 1.2em;"></span></p>
@@ -130,7 +139,7 @@
                             <p id="displayAddress"></p>
                         </div>
                     </div>
-                    <div class="col-5">
+                    <div class="col-4">
                         <div class="details">
                             PENGIRIM :
                             <p><span class="fw-bold" style="font-size: 12px;line-height: 1.2em;">Hisyam Aziz <br>6285174378377</span></p>
@@ -141,12 +150,12 @@
                         <div class="text-center p-2 border border-2 border-dark text-capitalize fw-bold" style="font-size: 14px !important;"><i class="bi bi-box-fill"></i> Fragile | please Handle with care</div>
                     </div>
                 </div>
-                <hr>
+                <hr class="border">
                 <div id="barcodeContainer" class="barcode">
                     <svg id="barcode" viewBox="0 0 200 100" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg"><!-- Konten SVG --></svg>
                 </div>
                 <div class="text-center">No. AWB: <span id="displayResi"></span></div>
-            </div>
+            </hr>
         </div>
     </div>
 <script>
