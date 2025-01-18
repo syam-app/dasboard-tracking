@@ -369,22 +369,22 @@ async function downloadPDF() {
         }
 
         // Render elemen HTML ke canvas
-        const canvas = await html2canvas(element, { scale: 2 }); // Atur skala lebih rendah untuk mengurangi ukuran
+        const canvas = await html2canvas(element, { scale: 2 });
 
         // Ambil dimensi elemen dari canvas
         const elementWidthPx = canvas.width;  // Lebar elemen dalam pixel
         const elementHeightPx = canvas.height; // Tinggi elemen dalam pixel
 
-        // Konversi ukuran pixel ke mm
-        const pdfWidth = elementWidthPx * 0.264583; // Lebar dalam mm
-        const pdfHeight = elementHeightPx * 0.264583; // Tinggi dalam mm
+        // Konversi lebar ke mm (tetap 80mm), dan sesuaikan tinggi secara proporsional
+        const pdfWidth = 80; // Lebar tetap 80mm
+        const pdfHeight = (elementHeightPx / elementWidthPx) * pdfWidth; // Tinggi disesuaikan dengan rasio elemen
 
-        // Buat PDF berdasarkan ukuran elemen
+        // Buat PDF dengan ukuran dinamis
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF({
             orientation: 'portrait',
             unit: 'mm',
-            format: [pdfWidth, pdfHeight], // Ukuran dinamis sesuai elemen
+            format: [pdfWidth, pdfHeight], // Ukuran halaman PDF
         });
 
         // Konversi canvas ke gambar JPEG dengan kualitas 0.8
