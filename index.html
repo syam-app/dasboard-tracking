@@ -369,7 +369,7 @@ async function downloadPDF() {
         }
 
         // Render elemen HTML ke canvas
-        const canvas = await html2canvas(element, { scale: 1.5 }); // Atur skala lebih rendah untuk mengurangi ukuran
+        const canvas = await html2canvas(element, { scale: 2 }); // Atur skala lebih rendah untuk mengurangi ukuran
 
         // Ambil dimensi elemen dari canvas
         const elementWidthPx = canvas.width;  // Lebar elemen dalam pixel
@@ -388,7 +388,7 @@ async function downloadPDF() {
         });
 
         // Konversi canvas ke gambar JPEG dengan kualitas 0.8
-        const imgData = canvas.toDataURL('image/jpeg', 0.8);
+        const imgData = canvas.toDataURL('image/jpeg', 1);
 
         // Tambahkan gambar ke PDF
         pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
