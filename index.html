@@ -114,6 +114,7 @@ hr.border{
                     </div>
                 </div>
                 <textarea id="inputText" class="form-control" rows="5" placeholder="Masukkan data"></textarea>
+                <input type="text" class="form-control text-uppercase mt-3" id="skuproduk" required placeholder="SKU">
                 <div class="d-flex justify-content-between mt-3">
                     <button type="button" class="btn btn-primary" onclick="parseAndFill()">
                         <i class="bi bi-journal-text"></i> Buat Label</button>
@@ -134,7 +135,10 @@ hr.border{
                         <div class="fst-italic">Bharata Internasional</div> 
                         <div style="font-weight:400;font-size: 14px;font-style: italic;margin-top: -5px;">Your pharmaceutical partner</div> 
                     </div>
-                    <div id="displayImgKurir" class="col-2 border border-dark border-1 p-2 rounded"><img src="courier.png" alt=""></div>
+                    <div id="displayImgKurir" class="col-2 border border-dark border-1 p-2 rounded" style="width: 70px;height: 50px;"><img src="courier.png" alt=""></div>
+                    <div class="details mt-3 mb-0">
+                            SKU Produk : <span id="displaySku" class="fw-bold" style="font-size: 12px;line-height: 1.2em;">
+                    </div>
                 </div>
                 <hr class="border">
                 <div class="row" style="font-size: 12px;line-height: 1.2em;">
@@ -204,6 +208,7 @@ function parseAndFill() {
     }
 
     const input = document.getElementById('inputText').value;
+    const skuproduk = document.getElementById('skuproduk').value;
     const lines = input.split('\n');
     const nameRegex = /^[A-Za-z\s.,'"\-]+/;
     const phoneRegex = /\d+/g;
@@ -237,6 +242,7 @@ function parseAndFill() {
     document.getElementById('displayRecipientNumber').textContent = phoneMatch || '';
     document.getElementById('displayAddress').textContent = address;
     document.getElementById('displayResi').textContent = trackingNumber;
+    document.getElementById('displaySku').textContent = skuproduk.toUpperCase();
 
     const kurirInputs = document.querySelectorAll('input[name="kurir"]');
     let selectedKurir = '';
