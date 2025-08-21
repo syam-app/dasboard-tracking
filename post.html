@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Detail Artikel</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a href="index.html">⬅ Kembali ke Beranda</a>
+  <h1 id="judul"></h1>
+  <div id="konten"></div>
+
+  <script>
+    function getQueryParam(name) {
+      return new URLSearchParams(window.location.search).get(name);
+    }
+
+    const sheetURL = "https://docs.google.com/spreadsheets/d/1ff-d0WgkKhO-TZujYErRCCrAvQMFoetpMPaYJ1XGoDI/gviz/tq?tqx=out:json";
+    const id = getQueryParam("id");
+
+    fetch(sheetURL)
+      .then(res => res.text())
+      .then(data => {
+        let json = JSON.parse(data.substr(47).slice(0,-2)); 
+        let rows = json.table.rows;
+
+        rows.forEach(r => {
+          if(r.c[0]?.v == id) {
+            document.getElementById("judul").innerText = r.c[1]?.v || "";
+            document.getElementById("konten").innerHTML = r.c[2]?.v || "";
+          }
+        });
+      });
+  </script>
+</body>
+</html>
