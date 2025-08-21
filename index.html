@@ -23,7 +23,7 @@
           let id = r.c[0]?.v || "";
           let judul = r.c[1]?.v || "";
           let konten = r.c[2]?.v || "";
-          let snippet = konten.substring(0, 120) + "...";
+          let snippet = konten.length > 120 ? konten.substring(0, 120) + "..." : konten;
 
           html += `
             <div class="card">
