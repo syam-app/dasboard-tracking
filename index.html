@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Blog Sederhana</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Blog Saya</h1>
+  <div id="posts"></div>
+
+  <script>
+    const sheetURL = "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/gviz/tq?tqx=out:json";
+
+    fetch(sheetURL)
+      .then(res => res.text())
+      .then(data => {
+        let json = JSON.parse(data.substr(47).slice(0,-2)); 
+        let rows = json.table.rows;
+
+        let html = "";
+        rows.forEach(r => {
+          let id = r.c[0]?.v || "";
+          let judul = r.c[1]?.v || "";
+          let konten = r.c[2]?.v || "";
+          let snippet = konten.substring(0, 120) + "...";
+
+          html += `
+            <div class="card">
+              <h2><a href="post.html?id=${id}">${judul}</a></h2>
+              <p>${snippet}</p>
+            </div>
+          `;
+        });
+
+        document.getElementById("posts").innerHTML = html;
+      });
+  </script>
+</body>
+</html>
