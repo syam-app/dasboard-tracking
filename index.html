@@ -138,6 +138,11 @@ function loadData() {
       fullData = data.slice(1);
             // 🔹 disini kita tambahkan kolom SINCE LASTUPDATE
       hitungSejakDiterima();  
+            // 🔹 Urutkan data terbaru dulu
+      const idxUpdate = columns.indexOf("TGL ORDER");
+      if (idxUpdate >= 0) {
+        fullData.sort((a, b) => new Date(b[idxUpdate]) - new Date(a[idxUpdate]));
+      }
       if (visibleColumns.length === 0) visibleColumns = [...columns]; 
       renderFilterOptions();
       renderTable();
