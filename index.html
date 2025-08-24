@@ -8,12 +8,33 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
   <style>
     .table-responsive { overflow-x: auto; }
+    .mengecil{font-size: 0.9rem;}
+  #searchBox,
+  #filterStatus,
+  #searchBox::placeholder,
+  .search-filter .btn {
+    font-size: 0.9rem !important;
+  }
+  #pagination {
+  display: flex;
+  justify-content: center; /* posisi tengah */
+  flex-wrap: wrap;         /* biar kalau penuh turun ke bawah */
+  margin-top: 12px;
+  gap: 4px;                /* jarak antar tombol */
+}
+
+#pagination .btn {
+  padding: 2px 8px;        /* lebih kecil dari default */
+  font-size: 0.8rem;       /* perkecil font */
+  border-radius: 6px;      /* biar tetap rapi */
+}
+
   </style>
 </head>
 <body class="bg-light">
 
 <div class="container py-4">
-  <h1 class="mb-4">📦 Dashboard Tracking</h1>
+  <h1 class="mb-4 fw-bold">📦 Dashboard Tracking</h1>
 
   <!-- Search & Filter -->
   <div class="card mb-3">
@@ -33,16 +54,17 @@
   </div>
 
   <!-- Tabel data -->
-  <div class="card table-responsive mb-4">
-    <div class="card-header">Data Tracking</div>
+  <div class="card table-responsive">
+    <div class="card-header lead">Data Tracking</div>
     <div class="card-body p-0">
-      <table class="table table-bordered table-hover mb-0" id="dataTable">
+      <table class="table table-bordered table-hover mb-0 mengecil" id="dataTable">
         <thead class="table-dark"><tr></tr></thead>
         <tbody></tbody>
       </table>
     </div>
   </div>
 </div>
+    <div id="pagination" class="mb-4"></div>
 
 <!-- Modal edit -->
 <div class="modal fade" id="editModal" tabindex="-1">
@@ -131,6 +153,14 @@ function renderFilterOptions() {
     statuses.forEach(s => filter.innerHTML += `<option value="${s}">${s}</option>`);
   }
 }
+// ===================== PAGINATION =====================
+let currentPage = 1;
+const rowsPerPage = 10;
+
+function changePage(page) {
+  currentPage = page;
+  renderTable();
+}
 
 // ===================== RENDER TABEL =====================
 function renderTable() {
@@ -144,21 +174,31 @@ function renderTable() {
   const keyword = document.getElementById("searchBox")?.value.toLowerCase() || "";
   const filterStatus = document.getElementById("filterStatus")?.value || "";
 
-  tbody.innerHTML = "";
-  fullData.forEach((row, i) => {
+  // 🔹 1. Filter data dulu
+  let filteredData = fullData.filter((row) => {
     const matchKeyword = keyword === "" || row.some(cell => String(cell).toLowerCase().includes(keyword));
     const statusIdx = columns.findIndex(c => c.toLowerCase() === "status");
     const matchStatus = !filterStatus || (statusIdx >= 0 && String(row[statusIdx]) === filterStatus);
+    return matchKeyword && matchStatus;
+  });
 
-    if (!matchKeyword || !matchStatus) return;
+  // 🔹 2. Pagination
+  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+  if (currentPage > totalPages) currentPage = totalPages || 1; // antisipasi kalau data habis
 
+  const start = (currentPage - 1) * rowsPerPage;
+  const end = start + rowsPerPage;
+  const pageData = filteredData.slice(start, end);
+
+  // 🔹 3. Render baris tabel
+  tbody.innerHTML = "";
+  pageData.forEach((row, i) => {
     let tr = document.createElement("tr");
-    let cells = `<td>${i+1}</td>`;
+    let cells = `<td>${start + i + 1}</td>`; // nomor urut global
     visibleColumns.forEach(col => {
       const idx = columns.indexOf(col);
       let val = row[idx] || "";
 
-      // Format tanggal untuk kolom tertentu
       if (col === "TGL ORDER" || col === "TANGGAL UPDATE") {
         val = formatDate(val);
       }
@@ -166,15 +206,88 @@ function renderTable() {
     });
 
     // Tombol aksi
+    const rowIndex = fullData.indexOf(row); // biar index sesuai data asli
     cells += `<td>
-                <button class="btn btn-sm btn-warning" onclick="showEditFull(${i})"><i class="bi bi-pencil-fill"></i></button>
-                <button class="btn btn-sm btn-success mt-1" onclick="showWaModal(${i})"><i class="bi bi-whatsapp"></i></button>
-                <button class="btn btn-sm btn-primary mt-1" onclick="confirmTrackResi(${i})"><i class="bi bi-truck"></i></button>
+                <button class="btn btn-sm btn-warning" onclick="showEditFull(${rowIndex})"><i class="bi bi-pencil-fill"></i></button>
+                <button class="btn btn-sm btn-success mt-1" onclick="showWaModal(${rowIndex})"><i class="bi bi-whatsapp"></i></button>
+                <button class="btn btn-sm btn-primary mt-1" onclick="confirmTrackResi(${rowIndex})"><i class="bi bi-truck"></i></button>
               </td>`;
     tr.innerHTML = cells;
     tbody.appendChild(tr);
   });
+
+  // 🔹 4. Render pagination controls (smart pagination)
+  const paginationEl = document.getElementById("pagination");
+  if (paginationEl) {
+    paginationEl.innerHTML = "";
+
+    // Tombol First
+    paginationEl.innerHTML += `
+      <button class="btn btn-sm btn-outline-primary me-1"
+        onclick="changePage(1)"
+        ${currentPage === 1 ? "disabled" : ""}>First</button>
+    `;
+
+    // Tombol Prev
+    paginationEl.innerHTML += `
+      <button class="btn btn-sm btn-outline-primary me-1"
+        onclick="changePage(${currentPage - 1})"
+        ${currentPage === 1 ? "disabled" : ""}>Prev</button>
+    `;
+
+    // Nomor halaman compact dengan ellipsis
+    const maxVisible = 5; // jumlah tombol halaman yg ditampilkan (selain first & last)
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let endPage = startPage + maxVisible - 1;
+
+    if (endPage > totalPages) {
+      endPage = totalPages;
+      startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    // Selalu tampilkan halaman 1
+    if (startPage > 1) {
+      paginationEl.innerHTML += `
+        <button class="btn btn-sm ${currentPage === 1 ? 'btn-primary' : 'btn-outline-primary'}"
+          onclick="changePage(1)">1</button>`;
+      if (startPage > 2) {
+        paginationEl.innerHTML += `<span class="px-2">…</span>`;
+      }
+    }
+
+    // Halaman di tengah
+    for (let p = startPage; p <= endPage; p++) {
+      paginationEl.innerHTML += `
+        <button class="btn btn-sm ${p === currentPage ? 'btn-primary' : 'btn-outline-primary'}"
+          onclick="changePage(${p})">${p}</button>`;
+    }
+
+    // Selalu tampilkan halaman terakhir
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        paginationEl.innerHTML += `<span class="px-2">…</span>`;
+      }
+      paginationEl.innerHTML += `
+        <button class="btn btn-sm ${currentPage === totalPages ? 'btn-primary' : 'btn-outline-primary'}"
+          onclick="changePage(${totalPages})">${totalPages}</button>`;
+    }
+
+    // Tombol Next
+    paginationEl.innerHTML += `
+      <button class="btn btn-sm btn-outline-primary ms-1"
+        onclick="changePage(${currentPage + 1})"
+        ${currentPage === totalPages ? "disabled" : ""}>Next</button>
+    `;
+
+    // Tombol Last
+    paginationEl.innerHTML += `
+      <button class="btn btn-sm btn-outline-primary ms-1"
+        onclick="changePage(${totalPages})"
+        ${currentPage === totalPages ? "disabled" : ""}>Last</button>
+    `;
+  }
 }
+
 
 // ===================== MODAL EDIT =====================
 function showEditFull(idx){
@@ -389,10 +502,6 @@ function resetFilter() {
 // ===================== INIT =====================
 loadData();
 </script>
-
-
-
-
 
 </body>
 </html>
