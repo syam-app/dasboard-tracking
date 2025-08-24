@@ -328,12 +328,31 @@ async function trackResi(idx) {
       return;
     }
 
-    const hist = json.data.history[0] || {};
-    const lastDesc = hist.desc || "";
-    const lastDate = hist.date || "";
-    const status = json.data.summary.status || "";
-    const startDate = new Date(json.data.summary.date || Date.now());
-    const duration = Math.floor((new Date() - startDate) / (1000*60*60)) + " Jam";
+const hist = json.data.history[0] || {};
+const lastDesc = hist.desc || "";
+const lastDate = hist.date || "";
+const status = json.data.summary.status || "";
+
+// Durasi = history terbaru - history pertama
+let duration = "";
+if (json.data.history && json.data.history.length > 1) {
+  const firstHist = json.data.history[json.data.history.length - 1]; // paling awal
+  const lastHist = json.data.history[0]; // terbaru
+  const firstDate = new Date(firstHist.date);
+  const lastDateObj = new Date(lastHist.date);
+
+  const diffMs = lastDateObj - firstDate; // selisih dalam ms
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+
+  if (diffHours < 24) {
+    duration = diffHours + " Jam";
+  } else {
+    const days = Math.floor(diffHours / 24);
+    const hours = diffHours % 24;
+    duration = days + " Hari " + hours + " Jam";
+  }
+}
+
 
     // update ke GAS
     const payload = {
