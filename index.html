@@ -65,10 +65,10 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 // ===================== CONFIG =====================
-const API_URL = "https://script.google.com/macros/s/AKfycbzB7aCsWp8hznss2sLW7EUtx4zAuBGqa-HcuBs2vihEqdTAP6Fc4JGuDWblp-VThmGoyA/exec"; 
+const API_URL = "https://script.google.com/macros/s/AKfycbznj-sKwQWMPi8uQSyVm4JzBAWrRnE8te-0p8CAWc9q0mX9Qvbfx8lmcXm37hpFtJa8uQ/exec"; 
 let fullData = [];
 let columns = [];
-let visibleColumns = ["TGL ORDER","NAMA","WHATSAPP","BARANG","ALAMAT","PAYMENT","NO. RESI","PELACAKAN TERBARU","TANGGAL UPDATE","STATUS","DURASI KIRIM"];
+let visibleColumns = ["TGL ORDER","NAMA","WHATSAPP","BARANG","ALAMAT","PAYMENT","NO. RESI","KURIR","PELACAKAN TERBARU","TANGGAL UPDATE","STATUS","DURASI KIRIM"];
 
 // Template pesan WA
 const waTemplates = {
@@ -167,8 +167,9 @@ function renderTable() {
 
     // Tombol aksi
     cells += `<td>
-                <button class="btn btn-sm btn-warning" onclick="showEditFull(${i})"><i class="bi bi-pencil-fill"></i> Edit</button>
-                <button class="btn btn-sm btn-success mt-1" onclick="showWaModal(${i})"><i class="bi bi-whatsapp"></i> WA</button>
+                <button class="btn btn-sm btn-warning" onclick="showEditFull(${i})"><i class="bi bi-pencil-fill"></i></button>
+                <button class="btn btn-sm btn-success mt-1" onclick="showWaModal(${i})"><i class="bi bi-whatsapp"></i></button>
+                <button class="btn btn-sm btn-primary mt-1" onclick="confirmTrackResi(${i})"><i class="bi bi-truck"></i></button>
               </td>`;
     tr.innerHTML = cells;
     tbody.appendChild(tr);
@@ -297,6 +298,66 @@ function showWaModal(idx) {
   new bootstrap.Modal(modalEl).show();
 }
 
+// ===================== TRACK RESI =====================
+// Wrapper konfirmasi sebelum panggil trackResi
+function confirmTrackResi(i) {
+  if (confirm("Yakin mau cek resi untuk data baris ke-" + (i+1) + " ?")) {
+    trackResi(i); // kalau OK, baru jalankan fungsi aslinya
+  }
+}
+
+async function trackResi(idx) {
+  const row = fullData[idx];
+  const resi = row[columns.indexOf("NO. RESI")];
+  const kurir = row[columns.indexOf("KURIR")];
+  const rowIndex = idx + 2; // offset header
+
+  if (!resi || !kurir) {
+    alert("Nomor resi atau kurir kosong!");
+    return;
+  }
+
+  try {
+    // >>>>>>>>>>>>> Ganti URL API tracking sesuai layanan yang kamu pakai <<<<<<<<<<<<<
+    const apiKey = "7dfb0627d2a03a05e81b82f4565f6b1e1517f280708a6cc9644b58ff6330a793";
+    const res = await fetch(`https://api.binderbyte.com/v1/track?api_key=${apiKey}&courier=${kurir}&awb=${resi}`);
+    const json = await res.json();
+
+    if (json.status !== 200) {
+      alert("Gagal tracking resi: " + json.message);
+      return;
+    }
+
+    const hist = json.data.history[0] || {};
+    const lastDesc = hist.desc || "";
+    const lastDate = hist.date || "";
+    const status = json.data.summary.status || "";
+    const startDate = new Date(json.data.summary.date || Date.now());
+    const duration = Math.floor((new Date() - startDate) / (1000*60*60)) + " Jam";
+
+    // update ke GAS
+    const payload = {
+      action: "updateResi",
+      rowIndex: rowIndex,
+      lastDesc: lastDesc,
+      lastDate: lastDate,
+      status: status,
+      duration: duration
+    };
+
+    await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+
+    alert("Resi berhasil diperbarui!");
+    loadData();
+  } catch (err) {
+    console.error(err);
+    alert("Error saat tracking resi");
+  }
+}
+
 // ===================== FILTER ACTION =====================
 document.getElementById("searchBox").addEventListener("input", renderTable);
 document.getElementById("filterStatus").addEventListener("change", renderTable);
@@ -309,6 +370,7 @@ function resetFilter() {
 // ===================== INIT =====================
 loadData();
 </script>
+
 
 
 
