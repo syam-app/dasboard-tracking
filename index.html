@@ -90,7 +90,7 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbznj-sKwQWMPi8uQSyVm4JzBAWrRnE8te-0p8CAWc9q0mX9Qvbfx8lmcXm37hpFtJa8uQ/exec"; 
 let fullData = [];
 let columns = [];
-let visibleColumns = ["TGL ORDER","NAMA","WHATSAPP","BARANG","ALAMAT","PAYMENT","NO. RESI","KURIR","PELACAKAN TERBARU","TANGGAL UPDATE","STATUS","DURASI KIRIM"];
+let visibleColumns = ["TGL ORDER","NAMA","WHATSAPP","BARANG","ALAMAT","PAYMENT","NO. RESI","KURIR","PELACAKAN TERBARU","TANGGAL UPDATE","STATUS","DURASI KIRIM","SEJAK DITERIMA"];
 
 // Template pesan WA
 const waTemplates = {
@@ -135,11 +135,42 @@ function loadData() {
     .then(res => res.json())
     .then(data => {
       columns = data[0];         
-      fullData = data.slice(1);  
+      fullData = data.slice(1);
+            // 🔹 disini kita tambahkan kolom SEJAK DITERIMA
+      hitungSejakDiterima();  
       if (visibleColumns.length === 0) visibleColumns = [...columns]; 
       renderFilterOptions();
       renderTable();
     });
+}
+function hitungSejakDiterima() {
+  const idxUpdate = columns.indexOf("TANGGAL UPDATE");
+  let idxSejak = columns.indexOf("SEJAK DITERIMA");
+
+  // kalau kolom SEJAK DITERIMA belum ada di header → tambahkan
+  if (idxSejak === -1) {
+    columns.push("SEJAK DITERIMA");
+    idxSejak = columns.length - 1;
+  }
+
+  const now = new Date();
+  fullData.forEach(row => {
+    const tglUpdate = new Date(row[idxUpdate]);
+    if (!isNaN(tglUpdate)) {
+      const diffMs = now - tglUpdate;
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60)); 
+      const days = Math.floor(diffHours / 24);
+      const hours = diffHours % 24;
+
+      let result = "";
+      if (days > 0) result += days + " Hari";
+      if (hours > 0) result += (result ? " " : "") + hours + " Jam";
+
+      row[idxSejak] = result || "0 Jam";
+    } else {
+      row[idxSejak] = "";
+    }
+  });
 }
 
 // ===================== FILTER =====================
