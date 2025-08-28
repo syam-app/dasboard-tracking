@@ -93,7 +93,22 @@ let visibleColumns = ["TGL ORDER","NAMA","WHATSAPP","BARANG","ALAMAT","PAYMENT",
 
 // Template pesan WA
 const waTemplates = {
-  info: "Halo Pak/Bu {NAMA}, Pesanan Anda {OBATNYA} dengan nomor resi *{NORESI}* status saat ini *{STATUS}*. *{TRACKING}* di update pada *{TGLUPDATE}*. Terima kasih :)",
+  infopesanan: `*DATA PESANAN*
+_{TGLORDER}_
+-------------------
+_*Info Pemesan*_
+{NAMA} | 62{WHATSAPP}
+{DETAIL ALAMAT}
+{ALAMAT}
+
+_*Info Pesanan*_
+{OBATNYA}
+Pembayaran {PAYMENT}
+  
+_*Info Pengiriman*_
+No. Resi  : {NORESI}
+Ekspedisi : {KURIRE}`,
+  infotracking: "Halo Pak/Bu {NAMA}, Pesanan Anda {OBATNYA} dengan nomor resi *{NORESI}* status saat ini *{STATUS}*. *{TRACKING}* di update pada *{TGLUPDATE}*. Terima kasih :)",
   followup: "Halo Pak/Bu {NAMA}, Bagaimana perkembangannya setelah konsumsi {OBATNYA}?",
   reminder: "Halo Pak/Bu {NAMA}, jangan lupa untuk konfirmasi penerimaan paket Anda ya 😊",
   invoice: `*INVOICE*
@@ -357,6 +372,19 @@ function formatRupiah(num) {
     minimumFractionDigits: 0
   }).format(Number(num) || 0);
 }
+function formatKurir(code) {
+  if (!code) return "";
+  const map = {
+    spx: "SPX Express",
+    jnt: "J&T Express",
+    jne: "JNE Express",
+    ninja: "NINJA Express",
+    ide: "ID Express"
+  };
+  const key = code.toLowerCase().trim();
+  return map[key] || code; // kalau tidak ada di map, pakai aslinya
+}
+
 
 // ================= Update invoice dari input angka =================
 function refreshInvoiceFields(textarea, fields, obatnya, hargaSatuan) {
@@ -397,6 +425,7 @@ function showWaModal(idx) {
   const tglorder = formatDate(row[columns.indexOf("TGL ORDER")] || "");
   const resi = row[columns.indexOf("NO. RESI")] || "";
   const obatnya = row[columns.indexOf("BARANG")] || "";
+  const kurir = row[columns.indexOf("KURIR")] || "";
   const tracking = row[columns.indexOf("PELACAKAN TERBARU")] || "";
   const status = row[columns.indexOf("STATUS")] || "";
 
@@ -422,8 +451,9 @@ function showWaModal(idx) {
               <label class="form-label">Pilih Template</label>
               <select id="waTemplate" class="form-select">
                 <option value="">-- Pilih --</option>
-                <option value="info">Info Pesanan</option>
                 <option value="invoice">Invoice</option>
+                <option value="infopesanan">Info Pesanan</option>
+                <option value="infotracking">Info Tracking</option>
                 <option value="followup">Follow Up</option>
                 <option value="reminder">Pengingat</option>
               </select>
@@ -471,12 +501,13 @@ function showWaModal(idx) {
   const hargaSatuan = 269000; // atur sesuai produk
 
   // Default isi template info
-  textarea.value = fillTemplate(waTemplates.info, row)
+  textarea.value = fillTemplate(waTemplates.infopesanan, row)
     .replace("{NAMA}", nama)
     .replace("{NORESI}", resi)
     .replace("{OBATNYA}", obatnya)
     .replace("{TGLUPDATE}", tglupdate)
     .replace("{TGLORDER}", tglorder)
+    .replace("{KURIRE}", formatKurir(kurir))
     .replace("{TRACKING}", tracking)
     .replace("{STATUS}", status);
 
@@ -518,6 +549,7 @@ function showWaModal(idx) {
         .replace("{OBATNYA}", obatnya)
         .replace("{TGLUPDATE}", tglupdate)
         .replace("{TGLORDER}", tglorder)
+        .replace("{KURIRE}", formatKurir(kurir))
         .replace("{TRACKING}", tracking)
         .replace("{STATUS}", status);
     }
