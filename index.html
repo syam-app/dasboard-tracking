@@ -383,7 +383,7 @@ function refreshInvoiceFields(textarea, fields, obatnya, hargaSatuan) {
   // Hemat
   text = text.replace(/^> *Anda hemat.*$/mi, `> Anda hemat ${formatRupiah(hemat)}`);
   // Total (normalkan agar hanya satu pasang * … *)
-  text = text.replace(/^\**\s*Total Tagihan COD\s*:\s*Rp[^\n]*\**$/mi, `*Total Tagihan COD : ${formatRupiah(total)}*`);
+  text = text.replace(/^\**\s*Total Tagihan COD\s*:?\s*Rp[^\n]*\**$/mi, `*Total Tagihan COD ${formatRupiah(total)}*`);
 
   textarea.value = text;
 }
