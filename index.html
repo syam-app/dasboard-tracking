@@ -111,8 +111,16 @@ Ekspedisi : {KURIRE}`,
   infotracking: "Halo Pak/Bu {NAMA}, Pesanan Anda {OBATNYA} dengan nomor resi *{NORESI}* status saat ini *{STATUS}*. *{TRACKING}* di update pada *{TGLUPDATE}*. Terima kasih :)",
   followup: "Halo Pak/Bu {NAMA}, Bagaimana perkembangannya setelah konsumsi {OBATNYA}?",
   reminder: "Halo Pak/Bu {NAMA}, jangan lupa untuk konfirmasi penerimaan paket Anda ya 😊",
-  invoice: `*INVOICE*
+  invoice: `*DATA PESANAN*
+-------------------
 _{TGLORDER}_
+
+_*Info Pemesan*_
+{NAMA} | 62{WHATSAPP}
+{DETAIL ALAMAT}
+{ALAMAT}
+
+*INVOICE*
 _Kepada Pak/Bu *{NAMA}*_
 
 *Ringkasan Pesanan*
@@ -523,7 +531,7 @@ function showWaModal(idx) {
       const hemat = diskonObat + diskonOngkir;
       const total = subtotal + ongkir - hemat;
 
-      textarea.value = waTemplates.invoice
+      textarea.value = fillTemplate(waTemplates.invoice, row)
         .replace("{TGLORDER}", tglorder)
         .replace("{NAMA}", nama)
         .replace("{ITEMS}", itemsText)
