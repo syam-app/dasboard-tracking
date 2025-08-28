@@ -112,7 +112,7 @@ Ekspedisi : {KURIRE}`,
   followup: "Halo Pak/Bu {NAMA}, Bagaimana perkembangannya setelah konsumsi {OBATNYA}?",
   reminder: "Halo Pak/Bu {NAMA}, jangan lupa untuk konfirmasi penerimaan paket Anda ya 😊",
   invoice: `*DATA PESANAN*
--------------------
+---------------------------------------------
 _{TGLORDER}_
 
 _*Info Pemesan*_
@@ -120,22 +120,31 @@ _*Info Pemesan*_
 {DETAIL ALAMAT}
 {ALAMAT}
 
-*INVOICE*
-_Kepada Pak/Bu *{NAMA}*_
+_*Info Pesanan*_
+{OBATNYA}
+Pembayaran {PAYMENT}
+  
+_*Info Pengiriman*_
+No. Resi  : {NORESI}
+Ekspedisi : {KURIRE}
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
 
-*Ringkasan Pesanan*
------------------------------------------
+*INVOICE*
+---------------------------------------------
+_Kepada Pak/Bu {NAMA}_
+
+_*Ringkasan Pesanan*_
 - {ITEMS}
 
-*Rincian Tagihan*
------------------------------------------
+_*Ringkasan Tagihan*_
 - Subtotal Obat    : Rp {SUBTOTAL}
 - Ongkir               : Rp {ONGKIR}
 - Diskon Obat      : ~Rp {DISKON_OBAT}~
 - Diskon Ongkir   : ~Rp {DISKON_ONGKIR}~
 
 > Anda hemat Rp {HEMAT}
------------------------------------------
+--------------------------------------
 *Total Tagihan COD : Rp {TOTAL}*`
 };
 
@@ -535,9 +544,12 @@ function showWaModal(idx) {
         .replace("{TGLORDER}", tglorder)
         .replace("{NAMA}", nama)
         .replace("{ITEMS}", itemsText)
+        .replace("{NORESI}", resi)
+        .replace("{OBATNYA}", obatnya)
         .replace("{SUBTOTAL}", formatRupiah(subtotal))
         .replace("{ONGKIR}", formatRupiah(ongkir))
         .replace("{DISKON_OBAT}", formatRupiah(diskonObat))
+        .replace("{KURIRE}", formatKurir(kurir))
         .replace("{DISKON_ONGKIR}", formatRupiah(diskonOngkir))
         .replace("{HEMAT}", formatRupiah(hemat))
         .replace("{TOTAL}", formatRupiah(total));
