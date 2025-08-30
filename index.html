@@ -85,11 +85,14 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 // ===================== CONFIG =====================
-const API_URL = "https://script.google.com/macros/s/AKfycbybIaPmHgwM82X_1kKgsH7Yk_lIMcVdfxDXy-VUEw4wrdRRITqK_UQP-ooSz8z6ySt2CQ/exec"; 
-let fullData = [];
-let columns = [];
-let serverColumns = []; // header asli dari sheet
-let visibleColumns = ["TGL ORDER","NAMA","WHATSAPP","BARANG","ALAMAT","PAYMENT","NO. RESI","KURIR","PELACAKAN TERBARU","TANGGAL UPDATE","STATUS","DURASI KIRIM","SINCE LASTUPDATE"];
+const API_URL = "https://script.google.com/macros/s/AKfycbypYKYYfsuTE5F4bWoO4WmPlegB6nE1UZsArLsKKd1TBBWA5TWw5gf6Em0-R89XZzi8/exec"; 
+
+// Kolom yang ingin ditampilkan di tabel (urutannya bisa diatur di sini)
+let visibleColumns = [
+  "TGL ORDER","NAMA","WHATSAPP","BARANG","ALAMAT","PAYMENT",
+  "NO. RESI","KURIR","PELACAKAN TERBARU","TANGGAL UPDATE","STATUS",
+  "DURASI KIRIM","SINCE LASTUPDATE"
+];
 
 // Template pesan WA
 const waTemplates = {
@@ -148,6 +151,15 @@ _*Ringkasan Tagihan*_
 *Total Tagihan COD : Rp {TOTAL}*`
 };
 
+// ===================== STATE (Server-side) =====================
+let headers = [];
+let pageData = [];            // data pada halaman aktif (array of rows)
+let totalRows = 0;            // total hasil setelah filter/search dari server
+let currentPage = 1;          // halaman aktif
+let rowsPerPage = 10;         // limit per halaman (sinkron dengan param "limit")
+let currentSearch = "";       // keyword pencarian
+let currentStatus = "";       // filter status
+
 // ===================== FUNGSI UTIL =====================
 function formatDate(dateStr) {
   if (!dateStr) return "";
@@ -167,221 +179,23 @@ function formatPhone(number) {
 }
 function fillTemplate(template, row) {
   let text = template;
-  columns.forEach((col, i) => {
-    text = text.replace(new RegExp("\\{"+col.replace(/\./g,"")+"\\}", "gi"), row[i] || "");
+  headers.forEach((col, i) => {
+    const key = col.replace(/\./g,"");
+    const val = row[i] || "";
+    text = text.replace(new RegExp("\\{"+key+"\\}", "gi"), val);
   });
   return text;
 }
-
-// ===================== LOAD DATA =====================
-function loadData() {
-  fetch(API_URL)
-    .then(res => res.json())
-    .then(data => {
-      columns = data[0];         
-      serverColumns = [...columns]; // simpan header asli
-
-      // simpan nomor baris asli
-      fullData = data.slice(1).map((row, i) => {
-        const r = [...row];
-        r._row = i + 2; // baris real di sheet
-        return r;
-      });
-
-      hitungSejakDiterima();  
-      const idxUpdate = columns.indexOf("TGL ORDER");
-      if (idxUpdate >= 0) {
-        fullData.sort((a, b) => new Date(b[idxUpdate]) - new Date(a[idxUpdate]));
-      }
-      if (visibleColumns.length === 0) visibleColumns = [...columns]; 
-      renderFilterOptions();
-      renderTable();
-    });
-}
-function hitungSejakDiterima() {
-  const idxUpdate = columns.indexOf("TANGGAL UPDATE");
-  let idxSejak = columns.indexOf("SINCE LASTUPDATE");
-  if (idxSejak === -1) {
-    columns.push("SINCE LASTUPDATE");
-    idxSejak = columns.length - 1;
-  }
-  const now = new Date();
-  fullData.forEach(row => {
-    const tglUpdate = new Date(row[idxUpdate]);
-    if (!isNaN(tglUpdate)) {
-      const diffMs = now - tglUpdate;
-      const diffHours = Math.floor(diffMs / (1000 * 60 * 60)); 
-      const days = Math.floor(diffHours / 24);
-      const hours = diffHours % 24;
-      let result = "";
-      if (days > 0) result += days + " Hari";
-      if (hours > 0) result += (result ? " " : "") + hours + " Jam";
-      row[idxSejak] = (result || "0 Jam") + " yang lalu";
-    } else {
-      row[idxSejak] = "";
-    }
-  });
-}
-
-// ===================== FILTER =====================
-function renderFilterOptions() {
-  const filter = document.getElementById("filterStatus");
-  filter.innerHTML = '<option value="">Filter Status</option>';
-  const statusIdx = columns.findIndex(c => c.toLowerCase() === "status");
-  if (statusIdx >= 0) {
-    const statuses = [...new Set(fullData.map(r => r[statusIdx]))].filter(s => s);
-    statuses.forEach(s => filter.innerHTML += `<option value="${s}">${s}</option>`);
-  }
-}
-// ===================== PAGINATION =====================
-let currentPage = 1;
-const rowsPerPage = 10;
-function changePage(page) {
-  currentPage = page;
-  renderTable();
-}
-
-// ===================== RENDER TABEL =====================
-function renderTable() {
-  const thead = document.querySelector("#dataTable thead tr");
-  const tbody = document.querySelector("#dataTable tbody");
-  thead.innerHTML = "<th>#</th>";
-  visibleColumns.forEach(col => thead.innerHTML += `<th>${col}</th>`);
-  thead.innerHTML += "<th>AKSI</th>";
-
-  const keyword = document.getElementById("searchBox")?.value.toLowerCase() || "";
-  const filterStatus = document.getElementById("filterStatus")?.value || "";
-  let filteredData = fullData.filter((row) => {
-    const matchKeyword = keyword === "" || row.some(cell => String(cell).toLowerCase().includes(keyword));
-    const statusIdx = columns.findIndex(c => c.toLowerCase() === "status");
-    const matchStatus = !filterStatus || (statusIdx >= 0 && String(row[statusIdx]) === filterStatus);
-    return matchKeyword && matchStatus;
-  });
-
-  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
-  if (currentPage > totalPages) currentPage = totalPages || 1;
-  const start = (currentPage - 1) * rowsPerPage;
-  const end = start + rowsPerPage;
-  const pageData = filteredData.slice(start, end);
-
-  tbody.innerHTML = "";
-  pageData.forEach((row, i) => {
-    let tr = document.createElement("tr");
-    let cells = `<td>${start + i + 1}</td>`;
-    visibleColumns.forEach(col => {
-      const idx = columns.indexOf(col);
-      let val = row[idx] || "";
-      if (col === "TGL ORDER" || col === "TANGGAL UPDATE") {
-        val = formatDate(val);
-      }
-      cells += `<td>${val}</td>`;
-    });
-    const rowIndex = fullData.indexOf(row);
-    cells += `<td>
-                <button class="btn btn-sm btn-warning" onclick="showEditFull(${rowIndex})"><i class="bi bi-pencil-fill"></i></button>
-                <button class="btn btn-sm btn-success mt-1" onclick="showWaModal(${rowIndex})"><i class="bi bi-whatsapp"></i></button>
-                <button class="btn btn-sm btn-primary mt-1" onclick="confirmTrackResi(${rowIndex})"><i class="bi bi-truck"></i></button>
-              </td>`;
-    tr.innerHTML = cells;
-    tbody.appendChild(tr);
-  });
-
-  // pagination (tidak diubah)
-  const paginationEl = document.getElementById("pagination");
-  if (paginationEl) {
-    paginationEl.innerHTML = "";
-    paginationEl.innerHTML += `<button class="btn btn-sm btn-outline-primary me-1"
-        onclick="changePage(1)" ${currentPage === 1 ? "disabled" : ""}>First</button>`;
-    paginationEl.innerHTML += `<button class="btn btn-sm btn-outline-primary me-1"
-        onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? "disabled" : ""}>Prev</button>`;
-    const maxVisible = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-    let endPage = startPage + maxVisible - 1;
-    if (endPage > totalPages) {
-      endPage = totalPages;
-      startPage = Math.max(1, endPage - maxVisible + 1);
-    }
-    if (startPage > 1) {
-      paginationEl.innerHTML += `<button class="btn btn-sm ${currentPage === 1 ? 'btn-primary' : 'btn-outline-primary'}"
-          onclick="changePage(1)">1</button>`;
-      if (startPage > 2) {
-        paginationEl.innerHTML += `<span class="px-2">…</span>`;
-      }
-    }
-    for (let p = startPage; p <= endPage; p++) {
-      paginationEl.innerHTML += `<button class="btn btn-sm ${p === currentPage ? 'btn-primary' : 'btn-outline-primary'}"
-          onclick="changePage(${p})">${p}</button>`;
-    }
-    if (endPage < totalPages) {
-      if (endPage < totalPages - 1) {
-        paginationEl.innerHTML += `<span class="px-2">…</span>`;
-      }
-      paginationEl.innerHTML += `<button class="btn btn-sm ${currentPage === totalPages ? 'btn-primary' : 'btn-outline-primary'}"
-          onclick="changePage(${totalPages})">${totalPages}</button>`;
-    }
-    paginationEl.innerHTML += `<button class="btn btn-sm btn-outline-primary ms-1"
-        onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? "disabled" : ""}>Next</button>`;
-    paginationEl.innerHTML += `<button class="btn btn-sm btn-outline-primary ms-1"
-        onclick="changePage(${totalPages})" ${currentPage === totalPages ? "disabled" : ""}>Last</button>`;
-  }
-}
-
-// ===================== MODAL EDIT =====================
-function showEditFull(idx){
-  const modalBody = document.querySelector("#editForm .modal-body");
-  modalBody.innerHTML = "";
-  const dataRow = fullData[idx];
-  serverColumns.forEach((col,i)=>{
-    const val = dataRow[i] || "";
-    const div = document.createElement("div");
-    div.className = "mb-3";
-    div.innerHTML = `<label>${col}</label>
-                     <input type="text" class="form-control" name="${col}" value="${val}">`;
-    modalBody.appendChild(div);
-  });
-  const rowInput = document.createElement("input");
-  rowInput.type = "hidden";
-  rowInput.name = "row";
-  rowInput.value = dataRow._row; // nomor baris asli
-  modalBody.appendChild(rowInput);
-  new bootstrap.Modal(document.getElementById("editModal")).show();
-}
-document.getElementById("editForm").addEventListener("submit", function(e){
-  e.preventDefault();
-  let formData = new FormData(this);
-  formData.append("action","update");
-  fetch(API_URL, {method:"POST", body:formData})
-    .then(res=>res.text())
-    .then(msg=>{
-      alert(msg);
-      loadData();
-      bootstrap.Modal.getInstance(document.getElementById("editModal")).hide();
-    });
-});
-
-// ================= Helper =================
-function parseObat(obatValue, hargaSatuan) {
-  if (!obatValue) return { qty: 1, namaProduk: "", itemsText: "", subtotal: 0 };
-  const parts = obatValue.trim().split(/\s+/);
-  const qty = parseInt(parts[0], 10) || 1;      // contoh: "3 Botol ..."
-  const namaProduk = parts.slice(2).join(" ");  // ambil setelah kata "Botol"
-  const itemsText = `${namaProduk}   x ${qty}`;
-  const subtotal = qty * (Number(hargaSatuan) || 0);
-  return { qty, namaProduk, itemsText, subtotal };
-}
-
 function parseRupiah(str) {
   if (!str) return 0;
-  return parseInt(
-    String(str)
-      .replace(/Rp/g, "")
-      .replace(/\s/g, "")
-      .replace(/\./g, "")
-      .replace(/,/g, "")
-      .replace(/~/g, "")
+  return parseInt(String(str)
+    .replace(/Rp/g, "")
+    .replace(/\s/g, "")
+    .replace(/\./g, "")
+    .replace(/,/g, "")
+    .replace(/~/g, "")
   ) || 0;
 }
-
 function formatRupiah(num) {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
@@ -391,60 +205,277 @@ function formatRupiah(num) {
 }
 function formatKurir(code) {
   if (!code) return "";
-  const map = {
-    spx: "SPX Express",
-    jnt: "J&T Express",
-    jne: "JNE Express",
-    ninja: "NINJA Express",
-    ide: "ID Express"
-  };
-  const key = code.toLowerCase().trim();
-  return map[key] || code; // kalau tidak ada di map, pakai aslinya
+  const map = { spx:"SPX Express", jnt:"J&T Express", jne:"JNE Express", ninja:"NINJA Express", ide:"ID Express" };
+  const key = String(code).toLowerCase().trim();
+  return map[key] || code;
 }
 
+// Hitung kolom "SINCE LASTUPDATE" pada pageData
+function hitungSejakDiterima(rows) {
+  const idxUpdate = headers.indexOf("TANGGAL UPDATE");
+  let idxSejak = headers.indexOf("SINCE LASTUPDATE");
+  if (idxSejak === -1) {
+    headers.push("SINCE LASTUPDATE");
+    idxSejak = headers.length - 1;
+  }
+  const now = new Date();
+  rows.forEach(r => {
+    const tgl = new Date(r[idxUpdate]);
+    if (!isNaN(tgl)) {
+      const diffMs = now - tgl;
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      const days = Math.floor(diffHours / 24);
+      const hours = diffHours % 24;
+      let result = "";
+      if (days > 0) result += days + " Hari";
+      if (hours > 0) result += (result ? " " : "") + hours + " Jam";
+      r[idxSejak] = (result || "0 Jam") + " yang lalu";
+    } else {
+      r[idxSejak] = "";
+    }
+  });
+}
 
-// ================= Update invoice dari input angka =================
+// ===================== DATA LOADING (SERVER-SIDE) =====================
+async function loadData() {
+  const params = new URLSearchParams({
+    page: String(currentPage),
+    limit: String(rowsPerPage),
+    search: currentSearch,
+    status: currentStatus
+  });
+  const res = await fetch(`${API_URL}?${params.toString()}`);
+  const json = await res.json();
+
+  headers = json.headers || [];
+  pageData = (json.data || []).map((row) => [...row]);
+  totalRows = json.total || 0;
+  currentPage = json.page || 1;
+  rowsPerPage = json.limit || rowsPerPage;
+
+  // Tambahkan kolom "SINCE LASTUPDATE" (client-side derived)
+  hitungSejakDiterima(pageData);
+
+  renderFilterOptions();
+  renderTable();
+}
+
+// ===================== FILTER (CLIENT UI → SERVER REQUEST) =====================
+function renderFilterOptions() {
+  // Catatan: sekarang status difilter di server. 
+  // Jika ingin opsi dinamis global, perlu endpoint khusus. 
+  // Di sini kita biarkan opsi <select> ditentukan di HTML, atau (fallback) isi dari pageData saat ini.
+  const filter = document.getElementById("filterStatus");
+  if (!filter) return;
+  if (filter.options.length > 1) return; // asumsikan HTML sudah men-setup opsi; jangan overwrite
+
+  const statusIdx = headers.indexOf("STATUS");
+  if (statusIdx >= 0) {
+    const statuses = [...new Set(pageData.map(r => r[statusIdx]))].filter(s => s);
+    statuses.forEach(s => {
+      const opt = document.createElement("option");
+      opt.value = s; opt.textContent = s;
+      filter.appendChild(opt);
+    });
+  }
+}
+
+// Event search & filter (mengirim request baru ke server)
+document.getElementById("searchBox")?.addEventListener("input", () => {
+  currentSearch = document.getElementById("searchBox").value.trim();
+  currentPage = 1;
+  loadData();
+});
+document.getElementById("filterStatus")?.addEventListener("change", () => {
+  currentStatus = document.getElementById("filterStatus").value;
+  currentPage = 1;
+  loadData();
+});
+function resetFilter() {
+  const s = document.getElementById("searchBox");
+  const f = document.getElementById("filterStatus");
+  if (s) s.value = "";
+  if (f) f.value = "";
+  currentSearch = ""; currentStatus = ""; currentPage = 1;
+  loadData();
+}
+
+// ===================== PAGINATION (PAKAI TOTAL DARI SERVER) =====================
+function changePage(page) {
+  currentPage = page;
+  loadData();
+}
+
+// ===================== RENDER TABEL =====================
+function renderTable() {
+  const thead = document.querySelector("#dataTable thead tr");
+  const tbody = document.querySelector("#dataTable tbody");
+  if (!thead || !tbody) return;
+
+  // Header: gunakan visibleColumns yang ada di sheet
+  const availableCols = visibleColumns.filter(col => headers.includes(col));
+  thead.innerHTML = "<th>#</th>" + availableCols.map(c => `<th>${c}</th>`).join("") + "<th>AKSI</th>";
+
+  // Rows
+  tbody.innerHTML = "";
+  const startIndex = (currentPage - 1) * rowsPerPage; // untuk nomor urut dan rowIndex aktual
+
+  pageData.forEach((row, i) => {
+    const tr = document.createElement("tr");
+    let cells = `<td>${startIndex + i + 1}</td>`;
+
+    availableCols.forEach(col => {
+      const idx = headers.indexOf(col);
+      let val = row[idx] ?? "";
+      if (col === "TGL ORDER" || col === "TANGGAL UPDATE") val = formatDate(val);
+      cells += `<td>${val}</td>`;
+    });
+
+    // Hitung row index asli di sheet: baris 1 = header → +2
+    const sheetRowIndex = startIndex + i + 2;
+
+    // Aksi
+    cells += `<td>
+      <button class="btn btn-sm btn-warning" onclick="showEditFull(${sheetRowIndex}, ${i})"><i class="bi bi-pencil-fill"></i></button>
+      <button class="btn btn-sm btn-success mt-1" onclick="showWaModal(${i})"><i class="bi bi-whatsapp"></i></button>
+      <button class="btn btn-sm btn-primary mt-1" onclick="confirmTrackResi(${i})"><i class="bi bi-truck"></i></button>
+    </td>`;
+
+    tr.innerHTML = cells;
+    tbody.appendChild(tr);
+  });
+
+  // Pagination control (berdasarkan totalRows dari server)
+  const paginationEl = document.getElementById("pagination");
+  if (paginationEl) {
+    const totalPages = Math.ceil((totalRows || 0) / rowsPerPage) || 1;
+    paginationEl.innerHTML = "";
+
+    paginationEl.innerHTML += `<button class="btn btn-sm btn-outline-primary me-1" onclick="changePage(1)" ${currentPage === 1 ? "disabled" : ""}>First</button>`;
+    paginationEl.innerHTML += `<button class="btn btn-sm btn-outline-primary me-1" onclick="changePage(${Math.max(1,currentPage-1)})" ${currentPage === 1 ? "disabled" : ""}>Prev</button>`;
+
+    const maxVisible = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let endPage = startPage + maxVisible - 1;
+    if (endPage > totalPages) { endPage = totalPages; startPage = Math.max(1, endPage - maxVisible + 1); }
+
+    if (startPage > 1) {
+      paginationEl.innerHTML += `<button class="btn btn-sm ${currentPage === 1 ? 'btn-primary' : 'btn-outline-primary'}" onclick="changePage(1)">1</button>`;
+      if (startPage > 2) paginationEl.innerHTML += `<span class="px-2">…</span>`;
+    }
+    for (let p = startPage; p <= endPage; p++) {
+      paginationEl.innerHTML += `<button class="btn btn-sm ${p === currentPage ? 'btn-primary' : 'btn-outline-primary'}" onclick="changePage(${p})">${p}</button>`;
+    }
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) paginationEl.innerHTML += `<span class="px-2">…</span>`;
+      paginationEl.innerHTML += `<button class="btn btn-sm ${currentPage === totalPages ? 'btn-primary' : 'btn-outline-primary'}" onclick="changePage(${totalPages})">${totalPages}</button>`;
+    }
+
+    paginationEl.innerHTML += `<button class="btn btn-sm btn-outline-primary ms-1" onclick="changePage(${Math.min(totalPages,currentPage+1)})" ${currentPage === totalPages ? "disabled" : ""}>Next</button>`;
+    paginationEl.innerHTML += `<button class="btn btn-sm btn-outline-primary ms-1" onclick="changePage(${Math.ceil(totalRows/rowsPerPage) || 1})" ${currentPage === totalPages ? "disabled" : ""}>Last</button>`;
+  }
+}
+
+// ===================== MODAL EDIT (UPDATE ROW SAJA) =====================
+function showEditFull(sheetRowIndex, localIndex){
+  const modalBody = document.querySelector("#editForm .modal-body");
+  if (!modalBody) return;
+
+  modalBody.innerHTML = "";
+  const dataRow = pageData[localIndex] || [];
+
+  headers.forEach((col,i)=>{
+    const val = dataRow[i] || "";
+    const div = document.createElement("div");
+    div.className = "mb-3";
+    div.innerHTML = `<label>${col}</label>\n                     <input type="text" class="form-control" name="col_${i}" value="${String(val).replace(/"/g,'&quot;')}">`;
+    modalBody.appendChild(div);
+  });
+
+  // Simpan row index asli sheet
+  const rowInput = document.createElement("input");
+  rowInput.type = "hidden";
+  rowInput.name = "row";
+  rowInput.value = sheetRowIndex; // baris real di sheet (>=2)
+  modalBody.appendChild(rowInput);
+
+  new bootstrap.Modal(document.getElementById("editModal")).show();
+}
+
+document.getElementById("editForm")?.addEventListener("submit", async function(e){
+  e.preventDefault();
+  const form = e.currentTarget;
+  const fd = new FormData(form);
+  const rowIndex = parseInt(fd.get("row"), 10);
+
+  // Ambil array nilai sesuai urutan headers
+  const rowData = headers.map((_, i) => fd.get(`col_${i}`) ?? "");
+
+  // Kirim JSON ke GAS (updateRow satu baris saja)
+  await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "updateRow", rowIndex, rowData })
+  });
+
+  // Update tampilan lokal tanpa reload total: timpa pageData sesuai form
+  const localIndex = (rowIndex - 2) - (rowsPerPage * (currentPage - 1));
+  if (localIndex >= 0 && localIndex < pageData.length) {
+    pageData[localIndex] = [...rowData];
+    // Re-calc kolom derived
+    hitungSejakDiterima([pageData[localIndex]]);
+    renderTable();
+  } else {
+    // jika tidak di halaman aktif, ambil ulang
+    loadData();
+  }
+
+  bootstrap.Modal.getInstance(document.getElementById("editModal")).hide();
+});
+
+// ===================== HELPER INVOICE =====================
+function parseObat(obatValue, hargaSatuan) {
+  if (!obatValue) return { qty: 1, namaProduk: "", itemsText: "", subtotal: 0 };
+  const parts = String(obatValue).trim().split(/\s+/);
+  const qty = parseInt(parts[0], 10) || 1;      // contoh: "3 Botol ..."
+  const namaProduk = parts.slice(2).join(" ");  // ambil setelah kata "Botol"
+  const itemsText = `${namaProduk}   x ${qty}`;
+  const subtotal = qty * (Number(hargaSatuan) || 0);
+  return { qty, namaProduk, itemsText, subtotal };
+}
 function refreshInvoiceFields(textarea, fields, obatnya, hargaSatuan) {
-  // qty & subtotal dihitung dari BARANG via parseObat
   const { subtotal } = parseObat(obatnya, hargaSatuan);
-
   const ongkir = parseInt(fields.ongkir.value, 10) || 0;
   const diskonObat = parseInt(fields.diskonObat.value, 10) || 0;
   const diskonOngkir = parseInt(fields.diskonOngkir.value, 10) || 0;
-
   const hemat = diskonObat + diskonOngkir;
   const total = subtotal + ongkir - hemat;
 
   let text = textarea.value;
-
-  // Subtotal (hindari "Rp Rp": biarkan formatRupiah yang menulis "Rp")
   text = text.replace(/- Subtotal Obat\s*:\s*Rp[^\n]*/i, `- Subtotal Obat   : ${formatRupiah(subtotal)}`);
-  // Ongkir
   text = text.replace(/- Ongkir\s*:\s*Rp[^\n]*/i, `- Ongkir               : ${formatRupiah(ongkir)}`);
-  // Diskon Obat (dengan ~ ~)
   text = text.replace(/- Diskon Obat\s*:\s*~?\s*Rp[^\n]*~?/i, `- Diskon Obat     : ~${formatRupiah(diskonObat)}~`);
-  // Diskon Ongkir
   text = text.replace(/- Diskon Ongkir\s*:\s*~?\s*Rp[^\n]*~?/i, `- Diskon Ongkir  : ~${formatRupiah(diskonOngkir)}~`);
-  // Hemat
   text = text.replace(/^> *Anda hemat.*$/mi, `> Anda hemat ${formatRupiah(hemat)}`);
-  // Total (normalkan agar hanya satu pasang * … *)
   text = text.replace(/^\**\s*Total Tagihan COD\s*:?\s*Rp[^\n]*\**$/mi, `*Total Tagihan COD ${formatRupiah(total)}*`);
-
   textarea.value = text;
 }
 
-// ================= Modal WhatsApp =================
-function showWaModal(idx) {
-  const row = fullData[idx];
-  const nama = row[columns.indexOf("NAMA")] || "";
-  const noWa = formatPhone(row[columns.indexOf("WHATSAPP")] || "");
-  const tglupdate = formatDate(row[columns.indexOf("TANGGAL UPDATE")] || "");
-  const tglorder = formatDate(row[columns.indexOf("TGL ORDER")] || "");
-  const resi = row[columns.indexOf("NO. RESI")] || "";
-  const obatnya = row[columns.indexOf("BARANG")] || "";
-  const kurir = row[columns.indexOf("KURIR")] || "";
-  const tracking = row[columns.indexOf("PELACAKAN TERBARU")] || "";
-  const status = row[columns.indexOf("STATUS")] || "";
+// ===================== Modal WhatsApp =====================
+function showWaModal(localIndex) {
+  const row = pageData[localIndex];
+  if (!row) return;
+  const idx = (name) => headers.indexOf(name);
+
+  const nama = row[idx("NAMA")] || "";
+  const noWa = formatPhone(row[idx("WHATSAPP")] || "");
+  const tglupdate = formatDate(row[idx("TANGGAL UPDATE")] || "");
+  const tglorder = formatDate(row[idx("TGL ORDER")] || "");
+  const resi = row[idx("NO. RESI")] || "";
+  const obatnya = row[idx("BARANG")] || "";
+  const kurir = row[idx("KURIR")] || "";
+  const tracking = row[idx("PELACAKAN TERBARU")] || "";
+  const status = row[idx("STATUS")] || "";
 
   const modalId = "waModal";
   let modalEl = document.getElementById(modalId);
@@ -476,7 +507,6 @@ function showWaModal(idx) {
               </select>
             </div>
 
-            <!-- Input tambahan khusus invoice -->
             <div id="invoiceFields" class="mt-3" style="display:none;">
               <div class="row g-2">
                 <div class="col-md-4">
@@ -507,14 +537,12 @@ function showWaModal(idx) {
   const textarea = modalEl.querySelector("#waMessage");
   const select = modalEl.querySelector("#waTemplate");
   const sendBtn = modalEl.querySelector("#waSendBtn");
-
   const invoiceFields = {
     container: modalEl.querySelector("#invoiceFields"),
     ongkir: modalEl.querySelector("#invOngkir"),
     diskonObat: modalEl.querySelector("#invDiskonObat"),
     diskonOngkir: modalEl.querySelector("#invDiskonOngkir"),
   };
-
   const hargaSatuan = 269000; // atur sesuai produk
 
   // Default isi template info
@@ -528,11 +556,10 @@ function showWaModal(idx) {
     .replace("{TRACKING}", tracking)
     .replace("{STATUS}", status);
 
-  // === saat pilih template ===
+  // saat pilih template
   select.onchange = () => {
     if (select.value === "invoice") {
       invoiceFields.container.style.display = "block";
-
       const { itemsText, subtotal } = parseObat(obatnya, hargaSatuan);
       const ongkir = parseInt(invoiceFields.ongkir.value, 10) || 0;
       const diskonObat = parseInt(invoiceFields.diskonObat.value, 10) || 0;
@@ -554,11 +581,8 @@ function showWaModal(idx) {
         .replace("{HEMAT}", formatRupiah(hemat))
         .replace("{TOTAL}", formatRupiah(total));
 
-      // re-calc saat input angka diubah
       [invoiceFields.ongkir, invoiceFields.diskonObat, invoiceFields.diskonOngkir].forEach(el => {
-        el.oninput = () => {
-          refreshInvoiceFields(textarea, invoiceFields, obatnya, hargaSatuan);
-        };
+        el.oninput = () => refreshInvoiceFields(textarea, invoiceFields, obatnya, hargaSatuan);
       });
 
     } else if (waTemplates[select.value]) {
@@ -575,7 +599,6 @@ function showWaModal(idx) {
     }
   };
 
-  // === tombol kirim hanya buka WA ===
   sendBtn.onclick = () => {
     const pesan = encodeURIComponent(textarea.value);
     window.open(`https://wa.me/${noWa}?text=${pesan}`, "_blank");
@@ -584,26 +607,23 @@ function showWaModal(idx) {
   new bootstrap.Modal(modalEl).show();
 }
 
-
-// ===================== TRACK RESI =====================
-function confirmTrackResi(i) {
-  if (confirm("Yakin mau cek resi untuk data baris ke-" + (i+1) + " ?")) {
-    trackResi(i);
-  }
+// ===================== TRACK RESI (UPDATE KOLOM VIA updateResi) =====================
+function confirmTrackResi(localIndex) {
+  if (confirm("Yakin mau cek resi untuk data baris ini?")) trackResi(localIndex);
 }
-async function trackResi(idx) {
-  const row = fullData[idx];
-  const resi = row[columns.indexOf("NO. RESI")];
-  const kurir = row[columns.indexOf("KURIR")];
-  const rowIndex = row._row; // nomor baris asli di sheet
+async function trackResi(localIndex) {
+  const row = pageData[localIndex];
+  if (!row) return alert("Baris tidak ditemukan.");
+  const idx = (name) => headers.indexOf(name);
 
-  if (!resi || !kurir) {
-    alert("Nomor resi atau kurir kosong!");
-    return;
-  }
+  const resi = row[idx("NO. RESI")];
+  const kurir = row[idx("KURIR")];
+  const sheetRowIndex = (currentPage - 1) * rowsPerPage + localIndex + 2; // baris real di sheet
+
+  if (!resi || !kurir) return alert("Nomor resi atau kurir kosong!");
 
   try {
-    // 1) Ambil tracking dari BinderByte
+    // Ambil tracking dari BinderByte (pastikan API key valid & courier code sesuai kebutuhan server)
     const response = await fetch(
       `https://api.binderbyte.com/v1/track?api_key=7dfb0627d2a03a05e81b82f4565f6b1e1517f280708a6cc9644b58ff6330a793&courier=${kurir}&awb=${resi}`
     );
@@ -611,74 +631,78 @@ async function trackResi(idx) {
 
     const result = await response.json();
     const history = result.data?.history || [];
-    if (history.length === 0) {
-      alert("Tidak ada history tracking!");
-      return;
-    }
+    if (history.length === 0) return alert("Tidak ada history tracking!");
 
-    // 2) Data terbaru
     const last = history[0];
     const lastDesc = last.desc || "";
     const lastDate = last.date || "";
     const status   = result.data.summary?.status || "";
 
-// 3) Durasi kirim: tanggal history pertama → tanggal history terbaru
-let duration = "";
-if (history.length > 1) {
-  const start = new Date(history[history.length - 1].date); // paling awal
-  const end   = new Date(history[0].date);                  // terbaru
-  const diff  = end - start;
-
-  if (!isNaN(diff)) {
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    if (hours < 24) {
-      duration = hours + " Jam";
-    } else {
-      const days = Math.floor(hours / 24);
-      const hRem = hours % 24;
-      duration = `${days} Hari ${hRem} Jam`;
+    // Durasi kirim
+    let duration = "";
+    if (history.length > 1) {
+      const start = new Date(history[history.length - 1].date);
+      const end   = new Date(history[0].date);
+      const diff  = end - start;
+      if (!isNaN(diff)) {
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        if (hours < 24) duration = hours + " Jam";
+        else {
+          const days = Math.floor(hours / 24);
+          const hRem = hours % 24;
+          duration = `${days} Hari ${hRem} Jam`;
+        }
+      }
     }
-  }
-}
 
-
-    // 4) Kirim ke GAS pakai FormData (action=update) → anti CORS preflight
-    const fd = new FormData();
-    fd.append("action", "update");
-    fd.append("row", rowIndex);
-
-    // Isi semua kolom sesuai header asli, tapi timpa 4 kolom target
-    serverColumns.forEach((h, i) => {
-      let v = row[i] ?? ""; // nilai lama
-      if (h === "PELACAKAN TERBARU") v = lastDesc;
-      if (h === "TANGGAL UPDATE")    v = lastDate;
-      if (h === "STATUS")            v = status;
-      if (h === "DURASI KIRIM")      v = duration;
-      fd.append(h, v);
+    // Kirim ke GAS pakai JSON (action=updateResi)
+    await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "updateResi",
+        rowIndex: sheetRowIndex,
+        lastDesc: lastDesc,
+        lastDate: lastDate,
+        status: status,
+        duration: duration
+      })
     });
 
-    await fetch(API_URL, { method: "POST", body: fd });
+    // Update lokal pada pageData agar UI langsung berubah
+    const idxDesc = headers.indexOf("PELACAKAN TERBARU");
+    const idxDate = headers.indexOf("TANGGAL UPDATE");
+    const idxStatus = headers.indexOf("STATUS");
+    const idxDurasi = headers.indexOf("DURASI KIRIM");
+
+    if (idxDesc >= 0) row[idxDesc] = lastDesc;
+    if (idxDate >= 0) row[idxDate] = lastDate;
+    if (idxStatus >= 0) row[idxStatus] = status;
+    if (idxDurasi >= 0) row[idxDurasi] = duration;
+
+    // Re-calc SINCE LASTUPDATE utk baris ini saja
+    hitungSejakDiterima([row]);
+    renderTable();
 
     alert("Resi berhasil diperbarui!");
-    loadData(); // refresh tabel
   } catch (err) {
     console.error(err);
     alert("Terjadi error saat tracking resi: " + err.message);
   }
 }
 
-
-// ===================== FILTER ACTION =====================
-document.getElementById("searchBox").addEventListener("input", renderTable);
-document.getElementById("filterStatus").addEventListener("change", renderTable);
-function resetFilter() {
-  document.getElementById("searchBox").value="";
-  document.getElementById("filterStatus").value="";
-  renderTable();
-}
-
 // ===================== INIT =====================
 loadData();
+
+// ===================== EXPOSE API UNTUK INLINE HANDLERS =====================
+window.App = {
+  loadData,
+  changePage,
+  showEditFull,
+  confirmTrackResi,
+  trackResi,
+  resetFilter
+};
 </script>
 
 </body>
