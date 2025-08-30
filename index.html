@@ -1,709 +1,762 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dashboard Tracking</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+  <meta charset="UTF-8" />
+  <title>Dashboard Orders</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <style>
-    .table-responsive { overflow-x: auto; }
-    .mengecil{font-size: 0.9rem;}
-    #searchBox,
-    #filterStatus,
-    #searchBox::placeholder,
-    .search-filter .btn {
-      font-size: 0.9rem !important;
-    }
-    #pagination {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      margin-top: 12px;
-      gap: 4px;
-    }
-    #pagination .btn {
-      padding: 2px 8px;
-      font-size: 0.8rem;
-      border-radius: 6px;
-    }
+    body { background: #f8fafc; }
+    .card { border-radius: 1rem; }
+    .table th, .table td { vertical-align: middle; }
+    .btn { border-radius: .75rem; }
+    *{font-size:.9rem ;}
+    /* Atur lebar kolom "ALAMAT" */
+#dataTable th:nth-child(6), 
+#dataTable td:nth-child(6) {
+  min-width: 250px;   /* lebar minimum */
+  max-width: 350px;   /* biar gak kepanjangan */
+  white-space: normal; /* biar bisa wrap ke bawah */
+  word-break: break-word; /* pecah kata panjang */
+}
+.pagination li a, 
+.pagination li span {
+  font-size: 12px;      /* kecilin font */
+  padding: 3px 8px;     /* kecilin tombol */
+}
+
   </style>
 </head>
-<body class="bg-light">
-
+<body>
 <div class="container py-4">
-  <h1 class="mb-4 fw-bold">📦 Dashboard Tracking</h1>
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h3 class="m-0 fw-bold">Dashboard Orders</h3>
+    <div class="small text-muted">Realtime Database • <span id="totalRowsLabel">0</span> records</div>
+  </div>
 
-  <!-- Search & Filter -->
+  <!-- Controls -->
   <div class="card mb-3">
-    <div class="card-body row g-3">
-      <div class="col-md-6">
-        <input type="text" id="searchBox" class="form-control" placeholder="Cari...">
-      </div>
-      <div class="col-md-3">
-        <select id="filterStatus" class="form-select">
-          <option value="">Filter Status</option>
-        </select>
-      </div>
-      <div class="col-md-3">
-        <button class="btn btn-secondary w-100" onclick="resetFilter()">Reset</button>
+    <div class="card-body">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label mb-1">Pencarian</label>
+          <input id="searchBox" class="form-control" placeholder="Cari nama, resi, kurir, status, dll..." />
+        </div>
+        <div class="col-md-3">
+          <label class="form-label mb-1">Filter Status</label>
+          <select id="filterStatus" class="form-select">
+            <option value="">— Semua Status —</option>
+            <!-- opsi dinamis terisi saat load -->
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label mb-1">Baris / Hal</label>
+          <select id="rowsPerPage" class="form-select">
+            <option>10</option>
+            <option>25</option>
+            <option>50</option>
+            <option>100</option>
+          </select>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+          <button class="btn btn-primary w-100" id="btnRefresh"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+          <button class="btn btn-outline-secondary w-100" id="btnReset"><i class="bi bi-eraser me-1"></i>Reset</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Tabel data -->
-  <div class="card table-responsive">
-    <div class="card-header lead">Data Tracking</div>
-    <div class="card-body p-0">
-      <table class="table table-bordered table-hover mb-0 mengecil" id="dataTable">
-        <thead class="table-dark"><tr></tr></thead>
+  <!-- Table -->
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-bordered table-striped m-0" id="dataTable">
+        <thead class="table-light">
+          <tr></tr>
+        </thead>
         <tbody></tbody>
       </table>
     </div>
+    <div class="card-body">
+      <div id="pagination" class="d-flex flex-wrap gap-2"></div>
+    </div>
   </div>
 </div>
-<div id="pagination" class="mb-4"></div>
 
-<!-- Modal edit -->
-<div class="modal fade" id="editModal" tabindex="-1">
-  <div class="modal-dialog">
-    <form id="editForm" class="modal-content">
+<!-- Modal: Edit -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <form class="modal-content" id="editForm">
       <div class="modal-header">
-        <h5 class="modal-title">Edit Data</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <h5 class="modal-title">Edit Data Order</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
       </div>
-      <div class="modal-body"></div>
+      <div class="modal-body">
+        <!-- fields injected by JS -->
+      </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-        <button class="btn btn-primary" type="submit">Simpan</button>
+        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Batal</button>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-save me-1"></i>Simpan</button>
       </div>
     </form>
   </div>
 </div>
 
+<!-- Modal: WhatsApp -->
+<div class="modal fade" id="waModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-whatsapp me-2"></i>Kirim WhatsApp</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label">Pesan</label>
+        <textarea id="waMessage" class="form-control" rows="8"></textarea>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-// ===================== CONFIG =====================
-const API_URL = "https://script.google.com/macros/s/AKfycbypYKYYfsuTE5F4bWoO4WmPlegB6nE1UZsArLsKKd1TBBWA5TWw5gf6Em0-R89XZzi8/exec"; 
-
-// Kolom yang ingin ditampilkan di tabel (urutannya bisa diatur di sini)
-let visibleColumns = [
-  "TGL ORDER","NAMA","WHATSAPP","BARANG","ALAMAT","PAYMENT",
-  "NO. RESI","KURIR","PELACAKAN TERBARU","TANGGAL UPDATE","STATUS",
-  "DURASI KIRIM","SINCE LASTUPDATE"
-];
-
-// Template pesan WA
-const waTemplates = {
-  infopesanan: `*DATA PESANAN*
-_{TGLORDER}_
--------------------
-_*Info Pemesan*_
-{NAMA} | 62{WHATSAPP}
-{DETAIL ALAMAT}
-{ALAMAT}
-
-_*Info Pesanan*_
-{OBATNYA}
-Pembayaran {PAYMENT}
-  
-_*Info Pengiriman*_
-No. Resi  : {NORESI}
-Ekspedisi : {KURIRE}`,
-  infotracking: "Halo Pak/Bu {NAMA}, Pesanan Anda {OBATNYA} dengan nomor resi *{NORESI}* status saat ini *{STATUS}*. *{TRACKING}* di update pada *{TGLUPDATE}*. Terima kasih :)",
-  followup: "Halo Pak/Bu {NAMA}, Bagaimana perkembangannya setelah konsumsi {OBATNYA}?",
-  reminder: "Halo Pak/Bu {NAMA}, jangan lupa untuk konfirmasi penerimaan paket Anda ya 😊",
-  invoice: `*DATA PESANAN*
----------------------------------------------
-_{TGLORDER}_
-
-_*Info Pemesan*_
-{NAMA} | 62{WHATSAPP}
-{DETAIL ALAMAT}
-{ALAMAT}
-
-_*Info Pesanan*_
-{OBATNYA}
-Pembayaran {PAYMENT}
-  
-_*Info Pengiriman*_
-No. Resi  : {NORESI}
-Ekspedisi : {KURIRE}
-~~~~~~~~~~~~~~~~~~~~~~~
-~~~~~~~~~~~~~~~~~~~~~~~
-
-*INVOICE*
----------------------------------------------
-_Kepada Pak/Bu {NAMA}_
-
-_*Ringkasan Pesanan*_
-- {ITEMS}
-
-_*Ringkasan Tagihan*_
-- Subtotal Obat    : Rp {SUBTOTAL}
-- Ongkir               : Rp {ONGKIR}
-- Diskon Obat      : ~Rp {DISKON_OBAT}~
-- Diskon Ongkir   : ~Rp {DISKON_ONGKIR}~
-
-> Anda hemat Rp {HEMAT}
---------------------------------------
-*Total Tagihan COD : Rp {TOTAL}*`
-};
-
-// ===================== STATE (Server-side) =====================
-let headers = [];
-let pageData = [];            // data pada halaman aktif (array of rows)
-let totalRows = 0;            // total hasil setelah filter/search dari server
-let currentPage = 1;          // halaman aktif
-let rowsPerPage = 10;         // limit per halaman (sinkron dengan param "limit")
-let currentSearch = "";       // keyword pencarian
-let currentStatus = "";       // filter status
-
-// ===================== FUNGSI UTIL =====================
-function formatDate(dateStr) {
-  if (!dateStr) return "";
-  const d = new Date(dateStr);
-  if (isNaN(d)) return dateStr; 
-  return d.toLocaleString("id-ID", {
-    day: "2-digit", month: "short", year: "numeric",
-    hour: "2-digit", minute: "2-digit"
-  });
-}
-function formatPhone(number) {
-  if (!number) return "";
-  let cleaned = number.toString().replace(/\D/g,""); 
-  if (cleaned.startsWith("62")) return cleaned;
-  if (cleaned.startsWith("0")) return "62" + cleaned.slice(1);
-  return "62" + cleaned; 
-}
-function fillTemplate(template, row) {
-  let text = template;
-  headers.forEach((col, i) => {
-    const key = col.replace(/\./g,"");
-    const val = row[i] || "";
-    text = text.replace(new RegExp("\\{"+key+"\\}", "gi"), val);
-  });
-  return text;
-}
-function parseRupiah(str) {
-  if (!str) return 0;
-  return parseInt(String(str)
-    .replace(/Rp/g, "")
-    .replace(/\s/g, "")
-    .replace(/\./g, "")
-    .replace(/,/g, "")
-    .replace(/~/g, "")
-  ) || 0;
-}
-function formatRupiah(num) {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0
-  }).format(Number(num) || 0);
-}
-function formatKurir(code) {
-  if (!code) return "";
-  const map = { spx:"SPX Express", jnt:"J&T Express", jne:"JNE Express", ninja:"NINJA Express", ide:"ID Express" };
-  const key = String(code).toLowerCase().trim();
-  return map[key] || code;
-}
-
-// Hitung kolom "SINCE LASTUPDATE" pada pageData
-function hitungSejakDiterima(rows) {
-  const idxUpdate = headers.indexOf("TANGGAL UPDATE");
-  let idxSejak = headers.indexOf("SINCE LASTUPDATE");
-  if (idxSejak === -1) {
-    headers.push("SINCE LASTUPDATE");
-    idxSejak = headers.length - 1;
-  }
-  const now = new Date();
-  rows.forEach(r => {
-    const tgl = new Date(r[idxUpdate]);
-    if (!isNaN(tgl)) {
-      const diffMs = now - tgl;
-      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-      const days = Math.floor(diffHours / 24);
-      const hours = diffHours % 24;
-      let result = "";
-      if (days > 0) result += days + " Hari";
-      if (hours > 0) result += (result ? " " : "") + hours + " Jam";
-      r[idxSejak] = (result || "0 Jam") + " yang lalu";
-    } else {
-      r[idxSejak] = "";
-    }
-  });
-}
-
-// ===================== DATA LOADING (SERVER-SIDE) =====================
-async function loadData() {
-  const params = new URLSearchParams({
-    page: String(currentPage),
-    limit: String(rowsPerPage),
-    search: currentSearch,
-    status: currentStatus
-  });
-  const res = await fetch(`${API_URL}?${params.toString()}`);
-  const json = await res.json();
-
-  headers = json.headers || [];
-  pageData = (json.data || []).map((row) => [...row]);
-  totalRows = json.total || 0;
-  currentPage = json.page || 1;
-  rowsPerPage = json.limit || rowsPerPage;
-
-  // Tambahkan kolom "SINCE LASTUPDATE" (client-side derived)
-  hitungSejakDiterima(pageData);
-
-  renderFilterOptions();
-  renderTable();
-}
-
-// ===================== FILTER (CLIENT UI → SERVER REQUEST) =====================
-function renderFilterOptions() {
-  // Catatan: sekarang status difilter di server. 
-  // Jika ingin opsi dinamis global, perlu endpoint khusus. 
-  // Di sini kita biarkan opsi <select> ditentukan di HTML, atau (fallback) isi dari pageData saat ini.
-  const filter = document.getElementById("filterStatus");
-  if (!filter) return;
-  if (filter.options.length > 1) return; // asumsikan HTML sudah men-setup opsi; jangan overwrite
-
-  const statusIdx = headers.indexOf("STATUS");
-  if (statusIdx >= 0) {
-    const statuses = [...new Set(pageData.map(r => r[statusIdx]))].filter(s => s);
-    statuses.forEach(s => {
-      const opt = document.createElement("option");
-      opt.value = s; opt.textContent = s;
-      filter.appendChild(opt);
-    });
-  }
-}
-
-// Event search & filter (mengirim request baru ke server)
-document.getElementById("searchBox")?.addEventListener("input", () => {
-  currentSearch = document.getElementById("searchBox").value.trim();
-  currentPage = 1;
-  loadData();
-});
-document.getElementById("filterStatus")?.addEventListener("change", () => {
-  currentStatus = document.getElementById("filterStatus").value;
-  currentPage = 1;
-  loadData();
-});
-function resetFilter() {
-  const s = document.getElementById("searchBox");
-  const f = document.getElementById("filterStatus");
-  if (s) s.value = "";
-  if (f) f.value = "";
-  currentSearch = ""; currentStatus = ""; currentPage = 1;
-  loadData();
-}
-
-// ===================== PAGINATION (PAKAI TOTAL DARI SERVER) =====================
-function changePage(page) {
-  currentPage = page;
-  loadData();
-}
-
-// ===================== RENDER TABEL =====================
-function renderTable() {
-  const thead = document.querySelector("#dataTable thead tr");
-  const tbody = document.querySelector("#dataTable tbody");
-  if (!thead || !tbody) return;
-
-  // Header: gunakan visibleColumns yang ada di sheet
-  const availableCols = visibleColumns.filter(col => headers.includes(col));
-  thead.innerHTML = "<th>#</th>" + availableCols.map(c => `<th>${c}</th>`).join("") + "<th>AKSI</th>";
-
-  // Rows
-  tbody.innerHTML = "";
-  const startIndex = (currentPage - 1) * rowsPerPage; // untuk nomor urut dan rowIndex aktual
-
-  pageData.forEach((row, i) => {
-    const tr = document.createElement("tr");
-    let cells = `<td>${startIndex + i + 1}</td>`;
-
-    availableCols.forEach(col => {
-      const idx = headers.indexOf(col);
-      let val = row[idx] ?? "";
-      if (col === "TGL ORDER" || col === "TANGGAL UPDATE") val = formatDate(val);
-      cells += `<td>${val}</td>`;
-    });
-
-    // Hitung row index asli di sheet: baris 1 = header → +2
-    const sheetRowIndex = startIndex + i + 2;
-
-    // Aksi
-    cells += `<td>
-      <button class="btn btn-sm btn-warning" onclick="showEditFull(${sheetRowIndex}, ${i})"><i class="bi bi-pencil-fill"></i></button>
-      <button class="btn btn-sm btn-success mt-1" onclick="showWaModal(${i})"><i class="bi bi-whatsapp"></i></button>
-      <button class="btn btn-sm btn-primary mt-1" onclick="confirmTrackResi(${i})"><i class="bi bi-truck"></i></button>
-    </td>`;
-
-    tr.innerHTML = cells;
-    tbody.appendChild(tr);
-  });
-
-  // Pagination control (berdasarkan totalRows dari server)
-  const paginationEl = document.getElementById("pagination");
-  if (paginationEl) {
-    const totalPages = Math.ceil((totalRows || 0) / rowsPerPage) || 1;
-    paginationEl.innerHTML = "";
-
-    paginationEl.innerHTML += `<button class="btn btn-sm btn-outline-primary me-1" onclick="changePage(1)" ${currentPage === 1 ? "disabled" : ""}>First</button>`;
-    paginationEl.innerHTML += `<button class="btn btn-sm btn-outline-primary me-1" onclick="changePage(${Math.max(1,currentPage-1)})" ${currentPage === 1 ? "disabled" : ""}>Prev</button>`;
-
-    const maxVisible = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-    let endPage = startPage + maxVisible - 1;
-    if (endPage > totalPages) { endPage = totalPages; startPage = Math.max(1, endPage - maxVisible + 1); }
-
-    if (startPage > 1) {
-      paginationEl.innerHTML += `<button class="btn btn-sm ${currentPage === 1 ? 'btn-primary' : 'btn-outline-primary'}" onclick="changePage(1)">1</button>`;
-      if (startPage > 2) paginationEl.innerHTML += `<span class="px-2">…</span>`;
-    }
-    for (let p = startPage; p <= endPage; p++) {
-      paginationEl.innerHTML += `<button class="btn btn-sm ${p === currentPage ? 'btn-primary' : 'btn-outline-primary'}" onclick="changePage(${p})">${p}</button>`;
-    }
-    if (endPage < totalPages) {
-      if (endPage < totalPages - 1) paginationEl.innerHTML += `<span class="px-2">…</span>`;
-      paginationEl.innerHTML += `<button class="btn btn-sm ${currentPage === totalPages ? 'btn-primary' : 'btn-outline-primary'}" onclick="changePage(${totalPages})">${totalPages}</button>`;
-    }
-
-    paginationEl.innerHTML += `<button class="btn btn-sm btn-outline-primary ms-1" onclick="changePage(${Math.min(totalPages,currentPage+1)})" ${currentPage === totalPages ? "disabled" : ""}>Next</button>`;
-    paginationEl.innerHTML += `<button class="btn btn-sm btn-outline-primary ms-1" onclick="changePage(${Math.ceil(totalRows/rowsPerPage) || 1})" ${currentPage === totalPages ? "disabled" : ""}>Last</button>`;
-  }
-}
-
-// ===================== MODAL EDIT (UPDATE ROW SAJA) =====================
-function showEditFull(sheetRowIndex, localIndex){
-  const modalBody = document.querySelector("#editForm .modal-body");
-  if (!modalBody) return;
-
-  modalBody.innerHTML = "";
-  const dataRow = pageData[localIndex] || [];
-
-  headers.forEach((col,i)=>{
-    const val = dataRow[i] || "";
-    const div = document.createElement("div");
-    div.className = "mb-3";
-    div.innerHTML = `<label>${col}</label>\n                     <input type="text" class="form-control" name="col_${i}" value="${String(val).replace(/"/g,'&quot;')}">`;
-    modalBody.appendChild(div);
-  });
-
-  // Simpan row index asli sheet
-  const rowInput = document.createElement("input");
-  rowInput.type = "hidden";
-  rowInput.name = "row";
-  rowInput.value = sheetRowIndex; // baris real di sheet (>=2)
-  modalBody.appendChild(rowInput);
-
-  new bootstrap.Modal(document.getElementById("editModal")).show();
-}
-
-document.getElementById("editForm")?.addEventListener("submit", async function(e){
-  e.preventDefault();
-  const form = e.currentTarget;
-  const fd = new FormData(form);
-  const rowIndex = parseInt(fd.get("row"), 10);
-
-  // Ambil array nilai sesuai urutan headers
-  const rowData = headers.map((_, i) => fd.get(`col_${i}`) ?? "");
-
-  // Kirim JSON ke GAS (updateRow satu baris saja)
-  await fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "updateRow", rowIndex, rowData })
-  });
-
-  // Update tampilan lokal tanpa reload total: timpa pageData sesuai form
-  const localIndex = (rowIndex - 2) - (rowsPerPage * (currentPage - 1));
-  if (localIndex >= 0 && localIndex < pageData.length) {
-    pageData[localIndex] = [...rowData];
-    // Re-calc kolom derived
-    hitungSejakDiterima([pageData[localIndex]]);
-    renderTable();
-  } else {
-    // jika tidak di halaman aktif, ambil ulang
-    loadData();
-  }
-
-  bootstrap.Modal.getInstance(document.getElementById("editModal")).hide();
-});
-
-// ===================== HELPER INVOICE =====================
-function parseObat(obatValue, hargaSatuan) {
-  if (!obatValue) return { qty: 1, namaProduk: "", itemsText: "", subtotal: 0 };
-  const parts = String(obatValue).trim().split(/\s+/);
-  const qty = parseInt(parts[0], 10) || 1;      // contoh: "3 Botol ..."
-  const namaProduk = parts.slice(2).join(" ");  // ambil setelah kata "Botol"
-  const itemsText = `${namaProduk}   x ${qty}`;
-  const subtotal = qty * (Number(hargaSatuan) || 0);
-  return { qty, namaProduk, itemsText, subtotal };
-}
-function refreshInvoiceFields(textarea, fields, obatnya, hargaSatuan) {
-  const { subtotal } = parseObat(obatnya, hargaSatuan);
-  const ongkir = parseInt(fields.ongkir.value, 10) || 0;
-  const diskonObat = parseInt(fields.diskonObat.value, 10) || 0;
-  const diskonOngkir = parseInt(fields.diskonOngkir.value, 10) || 0;
-  const hemat = diskonObat + diskonOngkir;
-  const total = subtotal + ongkir - hemat;
-
-  let text = textarea.value;
-  text = text.replace(/- Subtotal Obat\s*:\s*Rp[^\n]*/i, `- Subtotal Obat   : ${formatRupiah(subtotal)}`);
-  text = text.replace(/- Ongkir\s*:\s*Rp[^\n]*/i, `- Ongkir               : ${formatRupiah(ongkir)}`);
-  text = text.replace(/- Diskon Obat\s*:\s*~?\s*Rp[^\n]*~?/i, `- Diskon Obat     : ~${formatRupiah(diskonObat)}~`);
-  text = text.replace(/- Diskon Ongkir\s*:\s*~?\s*Rp[^\n]*~?/i, `- Diskon Ongkir  : ~${formatRupiah(diskonOngkir)}~`);
-  text = text.replace(/^> *Anda hemat.*$/mi, `> Anda hemat ${formatRupiah(hemat)}`);
-  text = text.replace(/^\**\s*Total Tagihan COD\s*:?\s*Rp[^\n]*\**$/mi, `*Total Tagihan COD ${formatRupiah(total)}*`);
-  textarea.value = text;
-}
-
-// ===================== Modal WhatsApp =====================
-function showWaModal(localIndex) {
-  const row = pageData[localIndex];
-  if (!row) return;
-  const idx = (name) => headers.indexOf(name);
-
-  const nama = row[idx("NAMA")] || "";
-  const noWa = formatPhone(row[idx("WHATSAPP")] || "");
-  const tglupdate = formatDate(row[idx("TANGGAL UPDATE")] || "");
-  const tglorder = formatDate(row[idx("TGL ORDER")] || "");
-  const resi = row[idx("NO. RESI")] || "";
-  const obatnya = row[idx("BARANG")] || "";
-  const kurir = row[idx("KURIR")] || "";
-  const tracking = row[idx("PELACAKAN TERBARU")] || "";
-  const status = row[idx("STATUS")] || "";
-
-  const modalId = "waModal";
-  let modalEl = document.getElementById(modalId);
-
-  if (!modalEl) {
-    modalEl = document.createElement("div");
-    modalEl.className = "modal fade";
-    modalEl.id = modalId;
-    modalEl.innerHTML = `
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Kirim WhatsApp</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <div class="row g-2 align-items-end mt-3">
+          <div class="col-md-6">
+            <label class="form-label">Pilih Template</label>
+            <select id="waTemplate" class="form-select">
+              <option value="">— Pilih —</option>
+              <option value="invoice">Invoice</option>
+              <option value="infopesanan">Info Pesanan</option>
+              <option value="infotracking">Info Tracking</option>
+              <option value="followup">Follow Up</option>
+              <option value="reminder">Pengingat</option>
+            </select>
           </div>
-          <div class="modal-body">
-            <label class="form-label">Pesan</label>
-            <textarea id="waMessage" class="form-control" rows="7"></textarea>
-            
-            <div class="mt-3">
-              <label class="form-label">Pilih Template</label>
-              <select id="waTemplate" class="form-select">
-                <option value="">-- Pilih --</option>
-                <option value="invoice">Invoice</option>
-                <option value="infopesanan">Info Pesanan</option>
-                <option value="infotracking">Info Tracking</option>
-                <option value="followup">Follow Up</option>
-                <option value="reminder">Pengingat</option>
-              </select>
-            </div>
-
-            <div id="invoiceFields" class="mt-3" style="display:none;">
-              <div class="row g-2">
-                <div class="col-md-4">
-                  <label class="form-label">Ongkir</label>
-                  <input type="number" id="invOngkir" class="form-control" value="0" min="0">
-                </div>
-                <div class="col-md-4">
-                  <label class="form-label">Diskon Obat</label>
-                  <input type="number" id="invDiskonObat" class="form-control" value="0" min="0">
-                </div>
-                <div class="col-md-4">
-                  <label class="form-label">Diskon Ongkir</label>
-                  <input type="number" id="invDiskonOngkir" class="form-control" value="0" min="0">
-                </div>
+          <div class="col-md-6" id="invoiceFields" style="display:none;">
+            <div class="row g-2">
+              <div class="col-4">
+                <label class="form-label">Ongkir</label>
+                <input type="number" id="invOngkir" class="form-control" value="0" min="0">
+              </div>
+              <div class="col-4">
+                <label class="form-label">Diskon Obat</label>
+                <input type="number" id="invDiskonObat" class="form-control" value="0" min="0">
+              </div>
+              <div class="col-4">
+                <label class="form-label">Diskon Ongkir</label>
+                <input type="number" id="invDiskonOngkir" class="form-control" value="0" min="0">
               </div>
             </div>
-
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-            <a id="waSendBtn" target="_blank" class="btn btn-success">Kirim WA</a>
           </div>
         </div>
-      </div>`;
-    document.body.appendChild(modalEl);
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        <a id="waSendBtn" target="_blank" class="btn btn-success"><i class="bi bi-send me-1"></i>Kirim WA</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- App -->
+<script type="module">
+/* ===================== 1) Firebase ===================== */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+import { 
+  getDatabase, ref, get, update 
+} from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB8T6K60Er26gh32FegI0a5x0M_Opr9HYY",
+  authDomain: "nakara-db.firebaseapp.com",
+  databaseURL: "https://nakara-db-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "nakara-db",
+  storageBucket: "nakara-db.firebasestorage.app",
+  messagingSenderId: "145693955066",
+  appId: "1:145693955066:web:f65286af5d67edbb3f4a43",
+  measurementId: "G-S4XV4NFETH"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+/* ===================== 2) Konstanta & State ===================== */
+const HEADERS = [
+  "TGLORDER","NAMA","WHATSAPP","BARANG","ALAMAT","PAYMENT",
+  "NORESI","KURIR","PELACAKANTERBARU","TANGGALUPDATE","STATUS","DURASIKIRIM"
+];
+let VISIBLE_COLUMNS = [
+  "TGLORDER","NAMA","WHATSAPP","BARANG","ALAMAT","PAYMENT",
+  "NORESI","KURIR","PELACAKANTERBARU","TANGGALUPDATE","STATUS",
+  "DURASIKIRIM","LASTUPDATE"
+];
+
+const WATemplates = {
+  infopesanan: "Halo {NAMA}, pesanan Anda tanggal {TGLORDER} sudah kami proses dengan resi {NORESI}.",
+  infotracking: "Halo Pak/Bu {NAMA}, Pesanan Anda {OBATNYA} dengan nomor resi *{NORESI}* status saat ini *{STATUS}*. *{TRACKING}* di update pada *{TGLUPDATE}*. Terima kasih :)",
+  followup: "Halo Pak/Bu {NAMA}, Bagaimana perkembangannya setelah konsumsi {OBATNYA}?",
+  invoice: `*Invoice Pesanan*\nTanggal Order: {TGLORDER}\nNama: {NAMA}\nBarang: {ITEMS}\nResi: {NORESI}\nKurir: {KURIRE}\n\n- Subtotal Obat   : {SUBTOTAL}\n- Ongkir               : {ONGKIR}\n- Diskon Obat     : ~{DISKON_OBAT}~\n- Diskon Ongkir  : ~{DISKON_ONGKIR}~\n\n> Anda hemat {HEMAT}\n\n*Total Tagihan COD {TOTAL}*`,
+  reminder: "Halo {NAMA}, ini adalah pengingat untuk pesanan Anda."
+};
+
+const state = {
+  rawRows: [],        // semua data (object array dengan _id)
+  filteredRows: [],   // hasil filter/search (sebelum pagination)
+  pageData: [],       // data pada halaman aktif
+  totalRows: 0,
+  currentPage: 1,
+  rowsPerPage: 10,
+  currentSearch: "",
+  currentStatus: "",
+  hargaSatuan: 269_000,
+  waContextIndex: null // index row saat buka WA modal
+};
+
+/* ===================== 3) Utilities ===================== */
+const Utils = {
+  formatDate(dateStr) {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    if (isNaN(d)) return dateStr;
+    return d.toLocaleString("id-ID", {
+      day: "2-digit", month: "short", year: "numeric",
+      hour: "2-digit", minute: "2-digit"
+    });
+  },
+  formatPhone(number) {
+    if (!number) return "";
+    let cleaned = number.toString().replace(/\D/g,"");
+    if (cleaned.startsWith("62")) return cleaned;
+    if (cleaned.startsWith("0")) return "62" + cleaned.slice(1);
+    return "62" + cleaned;
+  },
+  formatRupiah(num) {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency", currency: "IDR", minimumFractionDigits: 0
+    }).format(Number(num) || 0);
+  },
+  formatKurir(code) {
+    if (!code) return "";
+    const map = { spx:"SPX Express", jnt:"J&T Express", jne:"JNE Express", ninja:"NINJA Express", ide:"ID Express" };
+    const key = String(code).toLowerCase().trim();
+    return map[key] || code;
+  },
+  fillTemplate(template, rowArr) {
+    let text = template;
+    HEADERS.concat(["LASTUPDATE"]).forEach((col, i) => {
+      const key = col.replace(/\./g,"");
+      const val = (col === "LASTUPDATE")
+        ? (rowArr[HEADERS.indexOf("LASTUPDATE")] ?? rowArr[VISIBLE_COLUMNS.indexOf("LASTUPDATE")] ?? "")
+        : (rowArr[HEADERS.indexOf(col)] ?? "");
+      text = text.replace(new RegExp("\\{"+key+"\\}", "gi"), val ?? "");
+    });
+    return text;
+  },
+  hitungSejakUpdate(rows) {
+    const idxUpdate = HEADERS.indexOf("TANGGALUPDATE");
+    let idxSejak = HEADERS.indexOf("LASTUPDATE");
+    if (idxSejak === -1) {
+      HEADERS.push("LASTUPDATE");
+      idxSejak = HEADERS.length - 1;
+    }
+    const now = new Date();
+    rows.forEach(r => {
+      const tgl = new Date(r[idxUpdate]);
+      if (!isNaN(tgl)) {
+        const diffMs = now - tgl;
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const days = Math.floor(diffHours / 24);
+        const hours = diffHours % 24;
+        let result = "";
+        if (days > 0) result += days + " Hari";
+        if (hours > 0) result += (result ? " " : "") + hours + " Jam";
+        r[idxSejak] = (result || "0 Jam") + " yang lalu";
+      } else {
+        r[idxSejak] = "";
+      }
+    });
+  },
+  parseObat(obatValue, hargaSatuan) {
+    if (!obatValue) return { qty: 1, namaProduk: "", itemsText: "", subtotal: 0 };
+    const parts = String(obatValue).trim().split(/\s+/);
+    const qty = parseInt(parts[0], 10) || 1;      // contoh: "3 Botol ..."
+    const namaProduk = parts.slice(2).join(" ");  // ambil setelah kata "Botol"
+    const itemsText = `${namaProduk}   x ${qty}`;
+    const subtotal = qty * (Number(hargaSatuan) || 0);
+    return { qty, namaProduk, itemsText, subtotal };
+  },
+  refreshInvoiceFields(textarea, fields, obatnya, hargaSatuan) {
+    const { subtotal } = Utils.parseObat(obatnya, hargaSatuan);
+    const ongkir = parseInt(fields.ongkir.value, 10) || 0;
+    const diskonObat = parseInt(fields.diskonObat.value, 10) || 0;
+    const diskonOngkir = parseInt(fields.diskonOngkir.value, 10) || 0;
+    const hemat = diskonObat + diskonOngkir;
+    const total = subtotal + ongkir - hemat;
+
+    let text = textarea.value;
+    text = text.replace(/- Subtotal Obat\s*:\s*Rp[^\n]*/i, `- Subtotal Obat   : ${Utils.formatRupiah(subtotal)}`);
+    text = text.replace(/- Ongkir\s*:\s*Rp[^\n]*/i, `- Ongkir               : ${Utils.formatRupiah(ongkir)}`);
+    text = text.replace(/- Diskon Obat\s*:\s*~?\s*Rp[^\n]*~?/i, `- Diskon Obat     : ~${Utils.formatRupiah(diskonObat)}~`);
+    text = text.replace(/- Diskon Ongkir\s*:\s*~?\s*Rp[^\n]*~?/i, `- Diskon Ongkir  : ~${Utils.formatRupiah(diskonOngkir)}~`);
+    text = text.replace(/^> *Anda hemat.*$/mi, `> Anda hemat ${Utils.formatRupiah(hemat)}`);
+    text = text.replace(/^\**\s*Total Tagihan COD\s*:?\s*Rp[^\n]*\**$/mi, `*Total Tagihan COD ${Utils.formatRupiah(total)}*`);
+    textarea.value = text;
   }
+};
 
-  const textarea = modalEl.querySelector("#waMessage");
-  const select = modalEl.querySelector("#waTemplate");
-  const sendBtn = modalEl.querySelector("#waSendBtn");
-  const invoiceFields = {
-    container: modalEl.querySelector("#invoiceFields"),
-    ongkir: modalEl.querySelector("#invOngkir"),
-    diskonObat: modalEl.querySelector("#invDiskonObat"),
-    diskonOngkir: modalEl.querySelector("#invDiskonOngkir"),
-  };
-  const hargaSatuan = 269000; // atur sesuai produk
+/* ===================== 4) Data Access (RDB) ===================== */
+const Data = {
+  async loadAll() {
+    const snapshot = await get(ref(db, "data-pelanggan"));
+    if (!snapshot.exists()) return [];
+    const raw = snapshot.val();
+    const rows = Object.entries(raw).map(([id, obj]) => {
+      const arr = HEADERS.map(h => obj[h] ?? "");
+      arr._id = id;
+      return arr;
+    });
+    return rows;
+  },
+  async updateById(id, rowArray) {
+    const payload = {};
+    HEADERS.forEach((col, i) => payload[col] = rowArray[i] ?? "");
+    await update(ref(db, `data-pelanggan/${id}`), payload);
+  },
+  async patchById(id, patchObj) {
+    await update(ref(db, `data-pelanggan/${id}`), patchObj);
+  }
+};
 
-  // Default isi template info
-  textarea.value = fillTemplate(waTemplates.infopesanan, row)
-    .replace("{NAMA}", nama)
-    .replace("{NORESI}", resi)
-    .replace("{OBATNYA}", obatnya)
-    .replace("{TGLUPDATE}", tglupdate)
-    .replace("{TGLORDER}", tglorder)
-    .replace("{KURIRE}", formatKurir(kurir))
-    .replace("{TRACKING}", tracking)
-    .replace("{STATUS}", status);
+/* ===================== 5) Render ===================== */
+const Render = {
+  renderFilterOptions() {
+    const sel = document.getElementById("filterStatus");
+    if (!sel) return;
+    const statusIdx = HEADERS.indexOf("STATUS");
+    const distinct = [...new Set(state.rawRows.map(r => r[statusIdx]).filter(Boolean))].sort();
+    // clear except first (Semua)
+    sel.querySelectorAll("option:not(:first-child)").forEach(o => o.remove());
+    distinct.forEach(s => {
+      const opt = document.createElement("option");
+      opt.value = s; opt.textContent = s;
+      sel.appendChild(opt);
+    });
+  },
+  table() {
+    const thead = document.querySelector("#dataTable thead tr");
+    const tbody = document.querySelector("#dataTable tbody");
+    if (!thead || !tbody) return;
 
-  // saat pilih template
-  select.onchange = () => {
-    if (select.value === "invoice") {
-      invoiceFields.container.style.display = "block";
-      const { itemsText, subtotal } = parseObat(obatnya, hargaSatuan);
-      const ongkir = parseInt(invoiceFields.ongkir.value, 10) || 0;
-      const diskonObat = parseInt(invoiceFields.diskonObat.value, 10) || 0;
-      const diskonOngkir = parseInt(invoiceFields.diskonOngkir.value, 10) || 0;
-      const hemat = diskonObat + diskonOngkir;
-      const total = subtotal + ongkir - hemat;
+    const cols = VISIBLE_COLUMNS.filter(c => HEADERS.includes(c));
+    thead.innerHTML = "<th style='width:56px'>#</th>" + cols.map(c => `<th>${c}</th>`).join("") + "<th style='width:140px'>AKSI</th>";
 
-      textarea.value = fillTemplate(waTemplates.invoice, row)
-        .replace("{TGLORDER}", tglorder)
-        .replace("{NAMA}", nama)
-        .replace("{ITEMS}", itemsText)
-        .replace("{NORESI}", resi)
-        .replace("{OBATNYA}", obatnya)
-        .replace("{SUBTOTAL}", formatRupiah(subtotal))
-        .replace("{ONGKIR}", formatRupiah(ongkir))
-        .replace("{DISKON_OBAT}", formatRupiah(diskonObat))
-        .replace("{KURIRE}", formatKurir(kurir))
-        .replace("{DISKON_ONGKIR}", formatRupiah(diskonOngkir))
-        .replace("{HEMAT}", formatRupiah(hemat))
-        .replace("{TOTAL}", formatRupiah(total));
+    tbody.innerHTML = "";
+    const startIdx = (state.currentPage - 1) * state.rowsPerPage;
 
-      [invoiceFields.ongkir, invoiceFields.diskonObat, invoiceFields.diskonOngkir].forEach(el => {
-        el.oninput = () => refreshInvoiceFields(textarea, invoiceFields, obatnya, hargaSatuan);
+    state.pageData.forEach((row, i) => {
+      const tr = document.createElement("tr");
+      let cells = `<td>${startIdx + i + 1}</td>`;
+      cols.forEach(col => {
+        const idx = HEADERS.indexOf(col);
+        let val = row[idx] ?? "";
+        if (col === "TGLORDER" || col === "TANGGALUPDATE") val = Utils.formatDate(val);
+        if (col === "KURIR") val = Utils.formatKurir(val);
+        cells += `<td>${val}</td>`;
       });
 
-    } else if (waTemplates[select.value]) {
-      invoiceFields.container.style.display = "none";
-      textarea.value = fillTemplate(waTemplates[select.value], row)
-        .replace("{NAMA}", nama)
-        .replace("{NORESI}", resi)
-        .replace("{OBATNYA}", obatnya)
-        .replace("{TGLUPDATE}", tglupdate)
-        .replace("{TGLORDER}", tglorder)
-        .replace("{KURIRE}", formatKurir(kurir))
-        .replace("{TRACKING}", tracking)
-        .replace("{STATUS}", status);
-    }
-  };
+      const localIndex = i; // index dalam pageData
+      cells += `<td class="text-nowrap">
+        <button class="btn btn-sm btn-warning me-1" title="Edit" onclick="App.showEditFull(${localIndex})">
+          <i class="bi bi-pencil-fill"></i>
+        </button>
+        <button class="btn btn-sm btn-success me-1" title="Kirim WA" onclick="App.showWaModal(${localIndex})">
+          <i class="bi bi-whatsapp"></i>
+        </button>
+        <button class="btn btn-sm btn-primary" title="Cek Resi" onclick="App.confirmTrackResi(${localIndex})">
+          <i class="bi bi-truck"></i>
+        </button>
+      </td>`;
 
-  sendBtn.onclick = () => {
-    const pesan = encodeURIComponent(textarea.value);
-    window.open(`https://wa.me/${noWa}?text=${pesan}`, "_blank");
-  };
+      tr.innerHTML = cells;
+      tbody.appendChild(tr);
+    });
 
-  new bootstrap.Modal(modalEl).show();
-}
+    // Pagination
+    Render.pagination();
+    // Total label
+    document.getElementById("totalRowsLabel").textContent = String(state.filteredRows.length);
+  },
+  pagination() {
+    const container = document.getElementById("pagination");
+    if (!container) return;
+    container.innerHTML = "";
 
-// ===================== TRACK RESI (UPDATE KOLOM VIA updateResi) =====================
-function confirmTrackResi(localIndex) {
-  if (confirm("Yakin mau cek resi untuk data baris ini?")) trackResi(localIndex);
-}
-async function trackResi(localIndex) {
-  const row = pageData[localIndex];
-  if (!row) return alert("Baris tidak ditemukan.");
-  const idx = (name) => headers.indexOf(name);
+    const totalPages = Math.max(1, Math.ceil(state.filteredRows.length / state.rowsPerPage));
 
-  const resi = row[idx("NO. RESI")];
-  const kurir = row[idx("KURIR")];
-  const sheetRowIndex = (currentPage - 1) * rowsPerPage + localIndex + 2; // baris real di sheet
+    const btn = (label, page, disabled=false, active=false) => {
+      const b = document.createElement("button");
+      b.className = `btn btn-sm ${active ? "btn-primary" : "btn-outline-primary"}`;
+      b.textContent = label;
+      b.disabled = disabled;
+      b.onclick = () => Actions.changePage(page);
+      return b;
+    };
 
-  if (!resi || !kurir) return alert("Nomor resi atau kurir kosong!");
+    container.appendChild(btn("First", 1, state.currentPage===1));
+    container.appendChild(btn("Prev", Math.max(1, state.currentPage-1), state.currentPage===1));
 
-  try {
-    // Ambil tracking dari BinderByte (pastikan API key valid & courier code sesuai kebutuhan server)
-    const response = await fetch(
-      `https://api.binderbyte.com/v1/track?api_key=7dfb0627d2a03a05e81b82f4565f6b1e1517f280708a6cc9644b58ff6330a793&courier=${kurir}&awb=${resi}`
-    );
-    if (!response.ok) throw new Error("Gagal fetch BinderByte");
+    const maxVisible = 5;
+    let start = Math.max(1, state.currentPage - Math.floor(maxVisible/2));
+    let end = Math.min(totalPages, start + maxVisible - 1);
+    if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
 
-    const result = await response.json();
-    const history = result.data?.history || [];
-    if (history.length === 0) return alert("Tidak ada history tracking!");
-
-    const last = history[0];
-    const lastDesc = last.desc || "";
-    const lastDate = last.date || "";
-    const status   = result.data.summary?.status || "";
-
-    // Durasi kirim
-    let duration = "";
-    if (history.length > 1) {
-      const start = new Date(history[history.length - 1].date);
-      const end   = new Date(history[0].date);
-      const diff  = end - start;
-      if (!isNaN(diff)) {
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        if (hours < 24) duration = hours + " Jam";
-        else {
-          const days = Math.floor(hours / 24);
-          const hRem = hours % 24;
-          duration = `${days} Hari ${hRem} Jam`;
-        }
+    if (start > 1) {
+      container.appendChild(btn("1", 1, false, state.currentPage===1));
+      if (start > 2) {
+        const span = document.createElement("span"); span.className = "px-1"; span.textContent = "…";
+        container.appendChild(span);
       }
     }
 
-    // Kirim ke GAS pakai JSON (action=updateResi)
-    await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "updateResi",
-        rowIndex: sheetRowIndex,
-        lastDesc: lastDesc,
-        lastDate: lastDate,
-        status: status,
-        duration: duration
-      })
+    for (let p = start; p <= end; p++) {
+      container.appendChild(btn(String(p), p, false, state.currentPage===p));
+    }
+
+    if (end < totalPages) {
+      if (end < totalPages - 1) {
+        const span = document.createElement("span"); span.className = "px-1"; span.textContent = "…";
+        container.appendChild(span);
+      }
+      container.appendChild(btn(String(totalPages), totalPages, false, state.currentPage===totalPages));
+    }
+
+    container.appendChild(btn("Next", Math.min(totalPages, state.currentPage+1), state.currentPage===totalPages));
+    container.appendChild(btn("Last", totalPages, state.currentPage===totalPages));
+  }
+};
+
+/* ===================== 6) Actions (logic) ===================== */
+const Actions = {
+  async loadData() {
+    // load semua data
+    state.rawRows = await Data.loadAll();
+
+    // hitung LASTUPDATE (derived)
+    Utils.hitungSejakUpdate(state.rawRows);
+
+    // filter & search
+    Actions.applySearchFilter();
+
+    // render
+    Render.renderFilterOptions();
+    Render.table();
+  },
+
+  applySearchFilter() {
+    let rows = [...state.rawRows];
+
+    // Filter status
+    if (state.currentStatus) {
+      const idxStatus = HEADERS.indexOf("STATUS");
+      rows = rows.filter(r => String(r[idxStatus] || "") === state.currentStatus);
+    }
+
+    // Search (di semua kolom)
+    if (state.currentSearch) {
+      const kw = state.currentSearch.toLowerCase();
+      rows = rows.filter(r => r.some(v => String(v || "").toLowerCase().includes(kw)));
+    }
+
+    // Sort default TGLORDER desc (jika ada data tanggal valid)
+    const idxTgl = HEADERS.indexOf("TGLORDER");
+    rows.sort((a,b) => {
+      const da = new Date(a[idxTgl]), db = new Date(b[idxTgl]);
+      if (isNaN(da) && isNaN(db)) return 0;
+      if (isNaN(da)) return 1;
+      if (isNaN(db)) return -1;
+      return db - da;
     });
 
-    // Update lokal pada pageData agar UI langsung berubah
-    const idxDesc = headers.indexOf("PELACAKAN TERBARU");
-    const idxDate = headers.indexOf("TANGGAL UPDATE");
-    const idxStatus = headers.indexOf("STATUS");
-    const idxDurasi = headers.indexOf("DURASI KIRIM");
+    state.filteredRows = rows;
+    state.totalRows = rows.length;
 
-    if (idxDesc >= 0) row[idxDesc] = lastDesc;
-    if (idxDate >= 0) row[idxDate] = lastDate;
-    if (idxStatus >= 0) row[idxStatus] = status;
-    if (idxDurasi >= 0) row[idxDurasi] = duration;
+    // Pagination slice
+    const start = (state.currentPage - 1) * state.rowsPerPage;
+    state.pageData = rows.slice(start, start + state.rowsPerPage);
+  },
 
-    // Re-calc SINCE LASTUPDATE utk baris ini saja
-    hitungSejakDiterima([row]);
-    renderTable();
+  changePage(page) {
+    const totalPages = Math.max(1, Math.ceil(state.filteredRows.length / state.rowsPerPage));
+    state.currentPage = Math.min(Math.max(1, page), totalPages);
+    Actions.applySearchFilter();
+    Render.table();
+  },
 
-    alert("Resi berhasil diperbarui!");
-  } catch (err) {
-    console.error(err);
-    alert("Terjadi error saat tracking resi: " + err.message);
+  resetFilter() {
+    document.getElementById("searchBox").value = "";
+    document.getElementById("filterStatus").value = "";
+    state.currentSearch = "";
+    state.currentStatus = "";
+    state.currentPage = 1;
+    Actions.applySearchFilter();
+    Render.table();
+  },
+
+  /* ====== Edit ====== */
+  showEditFull(localIndex) {
+    const modalBody = document.querySelector("#editForm .modal-body");
+    if (!modalBody) return;
+    modalBody.innerHTML = "";
+
+    const row = state.pageData[localIndex];
+    if (!row) return;
+
+    // build inputs dari HEADERS
+    HEADERS.forEach((col, i) => {
+      const val = row[i] ?? "";
+      const formGroup = document.createElement("div");
+      formGroup.className = "mb-3";
+      formGroup.innerHTML = `
+        <label class="form-label">${col}</label>
+        <input type="text" class="form-control" name="col_${i}" value="${String(val).replace(/"/g,'&quot;')}">
+      `;
+      modalBody.appendChild(formGroup);
+    });
+
+    // hidden index
+    const hidden = document.createElement("input");
+    hidden.type = "hidden";
+    hidden.name = "localIndex";
+    hidden.value = String(localIndex);
+    modalBody.appendChild(hidden);
+
+    new bootstrap.Modal(document.getElementById("editModal")).show();
+  },
+
+  async submitEditForm(e) {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const localIndex = parseInt(fd.get("localIndex"), 10);
+
+    // reconstruct row array
+    const newRow = HEADERS.map((_, i) => fd.get(`col_${i}`) ?? "");
+
+    const row = state.pageData[localIndex];
+    if (!row) return;
+
+    const globalIndex = (state.currentPage - 1) * state.rowsPerPage + localIndex;
+    const id = state.filteredRows[globalIndex]._id;
+
+    await Data.updateById(id, newRow);
+
+    // update di cache
+    state.filteredRows[globalIndex] = Object.assign([...newRow], { _id: id });
+    Actions.applySearchFilter();
+    Render.table();
+
+    bootstrap.Modal.getInstance(document.getElementById("editModal")).hide();
+  },
+
+  /* ====== WhatsApp ====== */
+  showWaModal(localIndex) {
+    state.waContextIndex = localIndex;
+    const row = state.pageData[localIndex];
+    if (!row) return;
+
+    const nama = row[HEADERS.indexOf("NAMA")] || "";
+    const noresi = row[HEADERS.indexOf("NORESI")] || "";
+    const tglorder = Utils.formatDate(row[HEADERS.indexOf("TGLORDER")] || "");
+    const tglupdate = Utils.formatDate(row[HEADERS.indexOf("TANGGALUPDATE")] || "");
+    const kurir = Utils.formatKurir(row[HEADERS.indexOf("KURIR")] || "");
+    const obatnya = row[HEADERS.indexOf("BARANG")] || "";
+    const tracking = row[HEADERS.indexOf("PELACAKANTERBARU")] || "";
+    const status = row[HEADERS.indexOf("STATUS")] || "";
+
+    const textarea = document.getElementById("waMessage");
+    const select = document.getElementById("waTemplate");
+    const invBox = document.getElementById("invoiceFields");
+    const ongkirEl = document.getElementById("invOngkir");
+    const diskonObatEl = document.getElementById("invDiskonObat");
+    const diskonOngkirEl = document.getElementById("invDiskonOngkir");
+
+    // default infopesanan
+    textarea.value = Utils.fillTemplate(WATemplates.infopesanan, row)
+      .replace("{NAMA}", nama)
+      .replace("{NORESI}", noresi)
+      .replace("{OBATNYA}", obatnya)
+      .replace("{TGLUPDATE}", tglupdate)
+      .replace("{TGLORDER}", tglorder)
+      .replace("{KURIRE}", kurir)
+      .replace("{TRACKING}", tracking)
+      .replace("{STATUS}", status);
+
+    select.value = "";
+    invBox.style.display = "none";
+    ongkirEl.value = "0"; diskonObatEl.value = "0"; diskonOngkirEl.value = "0";
+
+    // on change template
+    select.onchange = () => {
+      if (select.value === "invoice") {
+        invBox.style.display = "block";
+        const { itemsText, subtotal } = Utils.parseObat(obatnya, state.hargaSatuan);
+        const ongkir = parseInt(ongkirEl.value,10)||0;
+        const dObat = parseInt(diskonObatEl.value,10)||0;
+        const dOngkir = parseInt(diskonOngkirEl.value,10)||0;
+        const hemat = dObat + dOngkir;
+        const total = subtotal + ongkir - hemat;
+
+        textarea.value = Utils.fillTemplate(WATemplates.invoice, row)
+          .replace("{TGLORDER}", tglorder)
+          .replace("{NAMA}", nama)
+          .replace("{ITEMS}", itemsText)
+          .replace("{NORESI}", noresi)
+          .replace("{OBATNYA}", obatnya)
+          .replace("{SUBTOTAL}", Utils.formatRupiah(subtotal))
+          .replace("{ONGKIR}", Utils.formatRupiah(ongkir))
+          .replace("{DISKON_OBAT}", Utils.formatRupiah(dObat))
+          .replace("{KURIRE}", kurir)
+          .replace("{DISKON_ONGKIR}", Utils.formatRupiah(dOngkir))
+          .replace("{HEMAT}", Utils.formatRupiah(hemat))
+          .replace("{TOTAL}", Utils.formatRupiah(total));
+
+        [ongkirEl, diskonObatEl, diskonOngkirEl].forEach(el => {
+          el.oninput = () => Utils.refreshInvoiceFields(
+            textarea,
+            { ongkir: ongkirEl, diskonObat: diskonObatEl, diskonOngkir: diskonOngkirEl },
+            obatnya, state.hargaSatuan
+          );
+        });
+
+      } else {
+        invBox.style.display = "none";
+        const tpl = WATemplates[select.value] || WATemplates.infopesanan;
+        textarea.value = Utils.fillTemplate(tpl, row)
+          .replace("{NAMA}", nama)
+          .replace("{NORESI}", noresi)
+          .replace("{OBATNYA}", obatnya)
+          .replace("{TGLUPDATE}", tglupdate)
+          .replace("{TGLORDER}", tglorder)
+          .replace("{KURIRE}", kurir)
+          .replace("{TRACKING}", tracking)
+          .replace("{STATUS}", status);
+      }
+    };
+
+    const sendBtn = document.getElementById("waSendBtn");
+    sendBtn.onclick = () => {
+      const nomor = Utils.formatPhone(row[HEADERS.indexOf("WHATSAPP")]||"");
+      const pesan = encodeURIComponent(textarea.value);
+      window.open(`https://wa.me/${nomor}?text=${pesan}`, "_blank");
+    };
+
+    new bootstrap.Modal(document.getElementById("waModal")).show();
+  },
+
+  /* ====== Tracking / Cek Resi (BinderByte) ====== */
+  confirmTrackResi(localIndex) {
+    if (confirm("Yakin mau cek resi untuk data ini?")) {
+      Actions.trackResi(localIndex);
+    }
+  },
+
+  async trackResi(localIndex) {
+    const row = state.pageData[localIndex];
+    if (!row) return alert("Baris tidak ditemukan.");
+    const idx = (name) => HEADERS.indexOf(name);
+
+    const resi = row[idx("NORESI")];
+    const kurir = row[idx("KURIR")];
+    if (!resi || !kurir) return alert("Nomor resi atau kurir kosong!");
+
+    try {
+      const url = `https://api.binderbyte.com/v1/track?api_key=7dfb0627d2a03a05e81b82f4565f6b1e1517f280708a6cc9644b58ff6330a793&courier=${encodeURIComponent(kurir)}&awb=${encodeURIComponent(resi)}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Gagal fetch BinderByte");
+
+      const result = await response.json();
+      const history = result.data?.history || [];
+      if (history.length === 0) return alert("Tidak ada history tracking!");
+
+      const last = history[0];
+      const lastDesc = last.desc || "";
+      const lastDate = last.date || "";
+      const status   = result.data?.summary?.status || "";
+
+      // Durasi kirim
+      let duration = "";
+      if (history.length > 1) {
+        const start = new Date(history[history.length - 1].date);
+        const end   = new Date(history[0].date);
+        const diff  = end - start;
+        if (!isNaN(diff)) {
+          const hours = Math.floor(diff / (1000 * 60 * 60));
+          if (hours < 24) duration = hours + " Jam";
+          else {
+            const days = Math.floor(hours / 24);
+            const hRem = hours % 24;
+            duration = `${days} Hari ${hRem} Jam`;
+          }
+        }
+      }
+
+      // cari id dokumen (global index)
+      const globalIndex = (state.currentPage - 1) * state.rowsPerPage + localIndex;
+      const id = state.filteredRows[globalIndex]._id;
+
+      // patch ke DB
+      await Data.patchById(id, {
+        PELACAKANTERBARU: lastDesc,
+        TANGGALUPDATE: lastDate,
+        STATUS: status,
+        DURASIKIRIM: duration
+      });
+
+      // update di cache
+      row[idx("PELACAKANTERBARU")] = lastDesc;
+      row[idx("TANGGALUPDATE")] = lastDate;
+      row[idx("STATUS")] = status;
+      row[idx("DURASIKIRIM")] = duration;
+
+      // recalc LASTUPDATE hanya baris ini
+      Utils.hitungSejakUpdate([row]);
+      Render.table();
+
+    } catch (err) {
+      console.error(err);
+      alert("Terjadi error saat tracking resi: " + err.message);
+    }
   }
-}
+};
 
-// ===================== INIT =====================
-loadData();
+/* ===================== 7) Wiring UI ===================== */
+document.getElementById("btnRefresh").addEventListener("click", () => Actions.loadData());
+document.getElementById("btnReset").addEventListener("click", () => Actions.resetFilter());
+document.getElementById("rowsPerPage").addEventListener("change", (e) => {
+  state.rowsPerPage = parseInt(e.target.value, 10) || 10;
+  state.currentPage = 1;
+  Actions.applySearchFilter();
+  Render.table();
+});
+document.getElementById("searchBox").addEventListener("input", (e) => {
+  state.currentSearch = e.target.value.trim();
+  state.currentPage = 1;
+  Actions.applySearchFilter();
+  Render.table();
+});
+document.getElementById("filterStatus").addEventListener("change", (e) => {
+  state.currentStatus = e.target.value;
+  state.currentPage = 1;
+  Actions.applySearchFilter();
+  Render.table();
+});
+document.getElementById("editForm").addEventListener("submit", Actions.submitEditForm);
 
-// ===================== EXPOSE API UNTUK INLINE HANDLERS =====================
+/* ===================== 8) Init ===================== */
+Actions.loadData();
+
+/* ===================== 9) Expose ke Window (untuk onClick inline) ===================== */
 window.App = {
-  loadData,
-  changePage,
-  showEditFull,
-  confirmTrackResi,
-  trackResi,
-  resetFilter
+  ...Actions
 };
 </script>
-
 </body>
 </html>
