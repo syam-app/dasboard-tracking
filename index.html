@@ -163,7 +163,7 @@
 /* ===================== 1) Firebase ===================== */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
 import { 
-  getDatabase, ref, get, update 
+  getDatabase, ref, get, update, remove 
 } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
 
 const firebaseConfig = {
@@ -448,8 +448,11 @@ const Render = {
         <button class="btn btn-sm btn-success me-1" title="Kirim WA" onclick="App.showWaModal(${localIndex})">
           <i class="bi bi-whatsapp"></i>
         </button>
-        <button class="btn btn-sm btn-primary" title="Cek Resi" onclick="App.confirmTrackResi(${localIndex})">
+        <button class="btn btn-sm btn-primary me-1" title="Cek Resi" onclick="App.confirmTrackResi(${localIndex})">
           <i class="bi bi-truck"></i>
+        </button>
+        <button class="btn btn-sm btn-danger" title="Hapus" onclick="App.deleteRow(${localIndex})">
+            <i class="bi bi-trash"></i>
         </button>
       </td>`;
 
@@ -801,7 +804,24 @@ const Actions = {
       console.error(err);
       alert("Terjadi error saat tracking resi: " + err.message);
     }
+  },
+
+async deleteRow(localIndex) {
+  const row = state.pageData[localIndex];
+  if (!row) return;
+
+  const id = row._id; // key unik di RDB
+  if (confirm("Yakin ingin menghapus data ini?")) {
+    try {
+      await remove(ref(db, "data-pelanggan/" + id));
+      alert("Data berhasil dihapus.");
+      await Actions.loadData(); // refresh tabel setelah hapus
+    } catch (e) {
+      console.error("Gagal hapus:", e);
+      alert("Gagal menghapus data!");
+    }
   }
+}
 };
 
 /* ===================== 7) Wiring UI ===================== */
