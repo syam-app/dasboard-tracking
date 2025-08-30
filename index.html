@@ -109,12 +109,12 @@
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-whatsapp me-2"></i>Kirim WhatsApp</h5>
+        <h5 class="modal-title">Kirim WhatsApp</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
       </div>
       <div class="modal-body">
         <label class="form-label">Pesan</label>
-        <textarea id="waMessage" class="form-control" rows="8"></textarea>
+        <textarea id="waMessage" class="form-control" rows="7"></textarea>
 
         <div class="row g-2 align-items-end mt-3">
           <div class="col-md-6">
@@ -181,7 +181,7 @@ const db = getDatabase(app);
 
 /* ===================== 2) Konstanta & State ===================== */
 const HEADERS = [
-  "TGLORDER","NAMA","WHATSAPP","BARANG","ALAMAT","PAYMENT",
+  "TGLORDER","NAMA","WHATSAPP","BARANG","ALAMAT","DETAILALAMAT","PAYMENT",
   "NORESI","KURIR","PELACAKANTERBARU","TANGGALUPDATE","STATUS","DURASIKIRIM"
 ];
 let VISIBLE_COLUMNS = [
@@ -191,10 +191,44 @@ let VISIBLE_COLUMNS = [
 ];
 
 const WATemplates = {
-  infopesanan: "Halo {NAMA}, pesanan Anda tanggal {TGLORDER} sudah kami proses dengan resi {NORESI}.",
+  infopesanan: "Halo Pak/Bu {NAMA}, pesanan Anda {OBATNYA} tanggal {TGLORDER} sudah kami proses dengan resi {NORESI}.",
   infotracking: "Halo Pak/Bu {NAMA}, Pesanan Anda {OBATNYA} dengan nomor resi *{NORESI}* status saat ini *{STATUS}*. *{TRACKING}* di update pada *{TGLUPDATE}*. Terima kasih :)",
   followup: "Halo Pak/Bu {NAMA}, Bagaimana perkembangannya setelah konsumsi {OBATNYA}?",
-  invoice: `*Invoice Pesanan*\nTanggal Order: {TGLORDER}\nNama: {NAMA}\nBarang: {ITEMS}\nResi: {NORESI}\nKurir: {KURIRE}\n\n- Subtotal Obat   : {SUBTOTAL}\n- Ongkir               : {ONGKIR}\n- Diskon Obat     : ~{DISKON_OBAT}~\n- Diskon Ongkir  : ~{DISKON_ONGKIR}~\n\n> Anda hemat {HEMAT}\n\n*Total Tagihan COD {TOTAL}*`,
+  invoice: `*DATA PESANAN*
+---------------------------------------------
+_{TGLORDER}_
+
+_*Info Pemesan*_
+{NAMA} | 62{WHATSAPP}
+{DETAILALAMAT}
+{ALAMAT}
+
+_*Info Pesanan*_
+{OBATNYA}
+Pembayaran {PAYMENT}
+  
+_*Info Pengiriman*_
+No. Resi  : {NORESI}
+Ekspedisi : {KURIRE}
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+
+*INVOICE*
+---------------------------------------------
+_Kepada Pak/Bu {NAMA}_
+
+_*Ringkasan Pesanan*_
+- {ITEMS}
+
+_*Ringkasan Tagihan*_
+- Subtotal Obat    : Rp {SUBTOTAL}
+- Ongkir               : Rp {ONGKIR}
+- Diskon Obat      : ~Rp {DISKON_OBAT}~
+- Diskon Ongkir   : ~Rp {DISKON_ONGKIR}~
+
+> Anda hemat Rp {HEMAT}
+--------------------------------------
+*Total Tagihan COD : Rp {TOTAL}*`,
   reminder: "Halo {NAMA}, ini adalah pengingat untuk pesanan Anda."
 };
 
@@ -211,7 +245,7 @@ const state = {
   waContextIndex: null // index row saat buka WA modal
 };
 
-/* ===================== 3) Utilities ===================== */
+/* ===================== 3) Utilities (REPLACE THIS BLOCK) ===================== */
 const Utils = {
   formatDate(dateStr) {
     if (!dateStr) return "";
@@ -222,6 +256,7 @@ const Utils = {
       hour: "2-digit", minute: "2-digit"
     });
   },
+
   formatPhone(number) {
     if (!number) return "";
     let cleaned = number.toString().replace(/\D/g,"");
@@ -229,32 +264,71 @@ const Utils = {
     if (cleaned.startsWith("0")) return "62" + cleaned.slice(1);
     return "62" + cleaned;
   },
+
   formatRupiah(num) {
     return new Intl.NumberFormat("id-ID", {
       style: "currency", currency: "IDR", minimumFractionDigits: 0
     }).format(Number(num) || 0);
   },
+
   formatKurir(code) {
     if (!code) return "";
     const map = { spx:"SPX Express", jnt:"J&T Express", jne:"JNE Express", ninja:"NINJA Express", ide:"ID Express" };
     const key = String(code).toLowerCase().trim();
     return map[key] || code;
   },
+
+  /**
+   * Safe template filler.
+   * - template: string containing placeholders like {NAMA}, {TGLORDER}, {TANGGALUPDATE}, {LASTUPDATE}
+   * - rowArr: array ordered like HEADERS (plus may contain extra LASTUPDATE at end)
+   */
   fillTemplate(template, rowArr) {
-    let text = template;
-    HEADERS.concat(["LASTUPDATE"]).forEach((col, i) => {
+    if (!template) return "";
+    let text = String(template);
+
+    // Build keys to replace: HEADERS + any visible extras (keamanan)
+    const extraKeys = (typeof VISIBLE_COLUMNS !== "undefined")
+      ? VISIBLE_COLUMNS.filter(c => !HEADERS.includes(c))
+      : [];
+    const keys = HEADERS.concat(extraKeys);
+
+    keys.forEach(col => {
       const key = col.replace(/\./g,"");
-      const val = (col === "LASTUPDATE")
-        ? (rowArr[HEADERS.indexOf("LASTUPDATE")] ?? rowArr[VISIBLE_COLUMNS.indexOf("LASTUPDATE")] ?? "")
-        : (rowArr[HEADERS.indexOf(col)] ?? "");
-      text = text.replace(new RegExp("\\{"+key+"\\}", "gi"), val ?? "");
+      // get value from row array: prefer index from HEADERS
+      let val = "";
+      const idx = HEADERS.indexOf(col);
+      if (idx >= 0) {
+        val = rowArr[idx] ?? "";
+      } else {
+        // fallback: try to find in rowArr by visible columns index (e.g. LASTUPDATE)
+        const visIdx = (typeof VISIBLE_COLUMNS !== "undefined") ? VISIBLE_COLUMNS.indexOf(col) : -1;
+        val = (visIdx >= 0) ? (rowArr[visIdx] ?? "") : (rowArr[HEADERS.length] ?? "");
+      }
+
+      // format known date fields
+      if (["TGLORDER", "TANGGALUPDATE"].includes(col)) {
+        val = Utils.formatDate(val);
+      }
+
+      // replace ALL occurrences, case-insensitive
+      try {
+        const re = new RegExp("\\{"+key+"\\}", "gi");
+        text = text.replace(re, val ?? "");
+      } catch (err) {
+        // fallback safe replace if regex build fails
+        text = text.split("{" + key + "}").join(val ?? "");
+      }
     });
+
     return text;
   },
+
   hitungSejakUpdate(rows) {
     const idxUpdate = HEADERS.indexOf("TANGGALUPDATE");
     let idxSejak = HEADERS.indexOf("LASTUPDATE");
     if (idxSejak === -1) {
+      // don't mutate HEADERS if you prefer immutable; but original code appended
       HEADERS.push("LASTUPDATE");
       idxSejak = HEADERS.length - 1;
     }
@@ -275,15 +349,17 @@ const Utils = {
       }
     });
   },
+
   parseObat(obatValue, hargaSatuan) {
     if (!obatValue) return { qty: 1, namaProduk: "", itemsText: "", subtotal: 0 };
     const parts = String(obatValue).trim().split(/\s+/);
-    const qty = parseInt(parts[0], 10) || 1;      // contoh: "3 Botol ..."
-    const namaProduk = parts.slice(2).join(" ");  // ambil setelah kata "Botol"
+    const qty = parseInt(parts[0], 10) || 1;
+    const namaProduk = parts.slice(2).join(" ");
     const itemsText = `${namaProduk}   x ${qty}`;
     const subtotal = qty * (Number(hargaSatuan) || 0);
     return { qty, namaProduk, itemsText, subtotal };
   },
+
   refreshInvoiceFields(textarea, fields, obatnya, hargaSatuan) {
     const { subtotal } = Utils.parseObat(obatnya, hargaSatuan);
     const ongkir = parseInt(fields.ongkir.value, 10) || 0;
@@ -302,6 +378,7 @@ const Utils = {
     textarea.value = text;
   }
 };
+/* ===================== end Utilities ===================== */
 
 /* ===================== 4) Data Access (RDB) ===================== */
 const Data = {
