@@ -1,33 +1,40 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Dasbor Orders — v4</title>
-
-  <!-- Bootstrap 5 & Icons -->
+  <meta charset="UTF-8" />
+  <title>Dashboard Orders</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Bootstrap 5 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-
   <style>
-    body { background:#f8fafc; font-size:.95rem; }
-    .card { border-radius:1rem; }
+    body { background: #f8fafc; }
+    .card { border-radius: 1rem; }
     .table th, .table td { vertical-align: middle; }
-    .btn { border-radius:.6rem; }
-    .table-bordered th, .table-bordered td { border:1px solid #dee2e6 !important; }
-    #dataTable th:nth-child(6), #dataTable td:nth-child(6) {
-      min-width:250px; max-width:350px; white-space:normal; word-break:break-word;
-    }
-    #pagination .btn { font-size:12px; padding:4px 8px; }
-    .text-xs { font-size:.85rem; }
-    .nowrap { white-space:nowrap; }
+    .btn { border-radius: .75rem; }
+    *{font-size:.9rem ;}
+    /* Atur lebar kolom "ALAMAT" */
+#dataTable th:nth-child(6), 
+#dataTable td:nth-child(6) {
+  min-width: 250px;   /* lebar minimum */
+  max-width: 350px;   /* biar gak kepanjangan */
+  white-space: normal; /* biar bisa wrap ke bawah */
+  word-break: break-word; /* pecah kata panjang */
+}
+.pagination li a, 
+.pagination li span {
+  font-size: 12px;      /* kecilin font */
+  padding: 3px 8px;     /* kecilin tombol */
+}
+
   </style>
 </head>
 <body>
 <div class="container py-4">
   <div class="d-flex align-items-center justify-content-between mb-3">
     <h3 class="m-0 fw-bold">Dashboard Order</h3>
-    <div class="small text-muted">Realtime db • <span id="totalRowsLabel">—</span> records</div>
+    <div class="small text-muted">Realtime db • <span id="totalRowsLabel">0</span> records</div>
   </div>
 
   <!-- Controls -->
@@ -35,17 +42,16 @@
     <div class="card-body">
       <div class="row g-2 align-items-end">
         <div class="col-md-4">
-          <label class="form-label mb-1">Pencarian nama</label>
-          <input id="searchBox" class="form-control" placeholder="Ketik nama (prefix) lalu tunggu..." />
+          <label class="form-label mb-1">Pencarian</label>
+          <input id="searchBox" class="form-control" placeholder="Cari nama, resi, kurir, status, dll..." />
         </div>
-
         <div class="col-md-3">
           <label class="form-label mb-1">Filter Status</label>
           <select id="filterStatus" class="form-select">
             <option value="">— Semua Status —</option>
+            <!-- opsi dinamis terisi saat load -->
           </select>
         </div>
-
         <div class="col-md-2">
           <label class="form-label mb-1">Baris / Hal</label>
           <select id="rowsPerPage" class="form-select">
@@ -55,10 +61,9 @@
             <option>100</option>
           </select>
         </div>
-
         <div class="col-md-3 d-flex gap-2">
-          <button id="btnRefresh" class="btn btn-primary w-100"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
-          <button id="btnReset" class="btn btn-outline-secondary w-100"><i class="bi bi-eraser me-1"></i>Reset</button>
+          <button class="btn btn-primary w-100" id="btnRefresh"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+          <button class="btn btn-outline-secondary w-100" id="btnReset"><i class="bi bi-eraser me-1"></i>Reset</button>
         </div>
       </div>
     </div>
@@ -67,19 +72,20 @@
   <!-- Table -->
   <div class="card">
     <div class="table-responsive">
-      <table id="dataTable" class="table table-bordered table-striped m-0">
-        <thead class="table-light"><tr></tr></thead>
+      <table class="table table-bordered table-striped m-0" id="dataTable">
+        <thead class="table-light">
+          <tr></tr>
+        </thead>
         <tbody></tbody>
       </table>
     </div>
-    <div class="card-body d-flex align-items-center justify-content-between">
-      <div id="pagination" class="d-flex gap-2 align-items-center"></div>
-      <div class="text-xs text-muted">Halaman: <span id="pageIndicator">0</span> • <span id="pageInfo">—</span></div>
+    <div class="card-body">
+      <div id="pagination" class="d-flex flex-wrap gap-2"></div>
     </div>
   </div>
 </div>
 
-<!-- Edit Modal -->
+<!-- Modal: Edit -->
 <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <form class="modal-content" id="editForm">
@@ -98,12 +104,12 @@
   </div>
 </div>
 
-<!-- WA Modal -->
+<!-- Modal: WhatsApp -->
 <div class="modal fade" id="waModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-whatsapp"></i> Kirim WhatsApp</h5>
+        <h5 class="modal-title">Kirim WhatsApp</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
       </div>
       <div class="modal-body">
@@ -149,19 +155,17 @@
   </div>
 </div>
 
-<!-- Bootstrap -->
+<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- Firebase + App (module) -->
+<!-- App -->
 <script type="module">
-/* ===================== Firebase SDK ===================== */
+/* ===================== 1) Firebase ===================== */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-import {
-  getDatabase, ref, get, update, query,
-  orderByChild, startAt, endAt, limitToFirst, limitToLast, equalTo
+import { 
+  getDatabase, ref, get, update 
 } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
 
-/* ===================== CONFIG ===================== */
 const firebaseConfig = {
   apiKey: "AIzaSyB8T6K60Er26gh32FegI0a5x0M_Opr9HYY",
   authDomain: "nakara-db.firebaseapp.com",
@@ -175,25 +179,21 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// BinderByte key (gunakan key Anda)
-const BINDERBYTE_API_KEY = "7dfb0627d2a03a05e81b82f4565f6b1e1517f280708a6cc9644b58ff6330a793";
-
-/* ===================== HEADERS & STATE ===================== */
+/* ===================== 2) Konstanta & State ===================== */
 const HEADERS = [
   "TGLORDER","NAMA","WHATSAPP","BARANG","ALAMAT","DETAILALAMAT","PAYMENT",
   "NORESI","KURIR","PELACAKANTERBARU","TANGGALUPDATE","STATUS","DURASIKIRIM"
 ];
-
 let VISIBLE_COLUMNS = [
   "TGLORDER","NAMA","WHATSAPP","BARANG","ALAMAT","PAYMENT",
   "NORESI","KURIR","PELACAKANTERBARU","TANGGALUPDATE","STATUS",
   "DURASIKIRIM","LASTUPDATE"
 ];
 
-const WATEMPLATES = {
-  infopesanan: "Halo Pak/Bu {NAMA}, pesanan Anda {BARANG} tanggal {TGLORDER} sudah kami proses dengan resi {NORESI}.",
-  infotracking: "Halo Pak/Bu {NAMA}, Pesanan Anda {BARANG} dengan nomor resi *{NORESI}* status saat ini *{STATUS}*. *{PELACAKANTERBARU}* diupdate pada *{TANGGALUPDATE}*. Terima kasih :)",
-  followup: "Halo Pak/Bu {NAMA}, Bagaimana perkembangannya setelah konsumsi {BARANG}?",
+const WATemplates = {
+  infopesanan: "Halo Pak/Bu {NAMA}, pesanan Anda {OBATNYA} tanggal {TGLORDER} sudah kami proses dengan resi {NORESI}.",
+  infotracking: "Halo Pak/Bu {NAMA}, Pesanan Anda {OBATNYA} dengan nomor resi *{NORESI}* status saat ini *{STATUS}*. *{TRACKING}* di update pada *{TGLUPDATE}*. Terima kasih :)",
+  followup: "Halo Pak/Bu {NAMA}, Bagaimana perkembangannya setelah konsumsi {OBATNYA}?",
   invoice: `*DATA PESANAN*
 ---------------------------------------------
 _{TGLORDER}_
@@ -204,7 +204,7 @@ _*Info Pemesan*_
 {ALAMAT}
 
 _*Info Pesanan*_
-{BARANG}
+{OBATNYA}
 Pembayaran {PAYMENT}
   
 _*Info Pengiriman*_
@@ -212,7 +212,6 @@ No. Resi  : {NORESI}
 Ekspedisi : {KURIRE}
 ~~~~~~~~~~~~~~~~~~~~~~~
 ~~~~~~~~~~~~~~~~~~~~~~~
-
 
 *INVOICE*
 ---------------------------------------------
@@ -234,89 +233,141 @@ _*Ringkasan Tagihan*_
 };
 
 const state = {
-  pageData: [],
-  pageSize: 10,
-  pageIndex: 0,
-  cursorStack: [],
-  currentCursor: null,
+  rawRows: [],        // semua data (object array dengan _id)
+  filteredRows: [],   // hasil filter/search (sebelum pagination)
+  pageData: [],       // data pada halaman aktif
+  totalRows: 0,
+  currentPage: 1,
+  rowsPerPage: 10,
   currentSearch: "",
   currentStatus: "",
   hargaSatuan: 269_000,
-  waContextIndex: null
+  waContextIndex: null // index row saat buka WA modal
 };
 
-/* ===================== UTIL ===================== */
+/* ===================== 3) Utilities (REPLACE THIS BLOCK) ===================== */
 const Utils = {
   formatDate(dateStr) {
     if (!dateStr) return "";
-    const d = (typeof dateStr === "number") ? new Date(dateStr) : new Date(dateStr);
-    if (isNaN(d)) return String(dateStr);
-    return d.toLocaleString("id-ID", { day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" });
+    const d = new Date(dateStr);
+    if (isNaN(d)) return dateStr;
+    return d.toLocaleString("id-ID", {
+      day: "2-digit", month: "short", year: "numeric",
+      hour: "2-digit", minute: "2-digit"
+    });
   },
+
   formatPhone(number) {
     if (!number) return "";
-    let cleaned = String(number).replace(/\D/g,"");
+    let cleaned = number.toString().replace(/\D/g,"");
     if (cleaned.startsWith("62")) return cleaned;
     if (cleaned.startsWith("0")) return "62" + cleaned.slice(1);
     return "62" + cleaned;
   },
-  formatRupiah(num) { return new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",minimumFractionDigits:0}).format(Number(num)||0); },
+
+  formatRupiah(num) {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency", currency: "IDR", minimumFractionDigits: 0
+    }).format(Number(num) || 0);
+  },
+
   formatKurir(code) {
     if (!code) return "";
     const map = { spx:"SPX Express", jnt:"J&T Express", jne:"JNE Express", ninja:"NINJA Express", ide:"ID Express" };
-    const k = String(code||"").toLowerCase().trim();
-    return map[k] || code;
+    const key = String(code).toLowerCase().trim();
+    return map[key] || code;
   },
+
+  /**
+   * Safe template filler.
+   * - template: string containing placeholders like {NAMA}, {TGLORDER}, {TANGGALUPDATE}, {LASTUPDATE}
+   * - rowArr: array ordered like HEADERS (plus may contain extra LASTUPDATE at end)
+   */
   fillTemplate(template, rowArr) {
     if (!template) return "";
     let text = String(template);
-    const keys = HEADERS.concat(VISIBLE_COLUMNS.filter(c=>!HEADERS.includes(c)));
-    keys.forEach(col=>{
+
+    // Build keys to replace: HEADERS + any visible extras (keamanan)
+    const extraKeys = (typeof VISIBLE_COLUMNS !== "undefined")
+      ? VISIBLE_COLUMNS.filter(c => !HEADERS.includes(c))
+      : [];
+    const keys = HEADERS.concat(extraKeys);
+
+    keys.forEach(col => {
       const key = col.replace(/\./g,"");
+      // get value from row array: prefer index from HEADERS
       let val = "";
       const idx = HEADERS.indexOf(col);
-      if (idx >= 0) val = rowArr[idx] ?? "";
-      else { const visIdx = VISIBLE_COLUMNS.indexOf(col); val = visIdx>=0 ? (rowArr[visIdx] ?? "") : (rowArr[HEADERS.length] ?? ""); }
-      if (["TGLORDER","TANGGALUPDATE"].includes(col)) val = Utils.formatDate(val);
-      try { text = text.replace(new RegExp("\\{"+key+"\\}","gi"), val ?? ""); } catch(e) { text = text.split("{"+key+"}").join(val ?? ""); }
+      if (idx >= 0) {
+        val = rowArr[idx] ?? "";
+      } else {
+        // fallback: try to find in rowArr by visible columns index (e.g. LASTUPDATE)
+        const visIdx = (typeof VISIBLE_COLUMNS !== "undefined") ? VISIBLE_COLUMNS.indexOf(col) : -1;
+        val = (visIdx >= 0) ? (rowArr[visIdx] ?? "") : (rowArr[HEADERS.length] ?? "");
+      }
+
+      // format known date fields
+      if (["TGLORDER", "TANGGALUPDATE"].includes(col)) {
+        val = Utils.formatDate(val);
+      }
+
+      // replace ALL occurrences, case-insensitive
+      try {
+        const re = new RegExp("\\{"+key+"\\}", "gi");
+        text = text.replace(re, val ?? "");
+      } catch (err) {
+        // fallback safe replace if regex build fails
+        text = text.split("{" + key + "}").join(val ?? "");
+      }
     });
+
     return text;
   },
+
   hitungSejakUpdate(rows) {
     const idxUpdate = HEADERS.indexOf("TANGGALUPDATE");
     let idxSejak = HEADERS.indexOf("LASTUPDATE");
-    if (idxSejak === -1) { HEADERS.push("LASTUPDATE"); idxSejak = HEADERS.length - 1; }
+    if (idxSejak === -1) {
+      // don't mutate HEADERS if you prefer immutable; but original code appended
+      HEADERS.push("LASTUPDATE");
+      idxSejak = HEADERS.length - 1;
+    }
     const now = new Date();
-    rows.forEach(r=>{
+    rows.forEach(r => {
       const tgl = new Date(r[idxUpdate]);
       if (!isNaN(tgl)) {
         const diffMs = now - tgl;
-        const diffHours = Math.floor(diffMs / (1000*60*60));
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
         const days = Math.floor(diffHours / 24);
         const hours = diffHours % 24;
         let result = "";
         if (days > 0) result += days + " Hari";
         if (hours > 0) result += (result ? " " : "") + hours + " Jam";
         r[idxSejak] = (result || "0 Jam") + " yang lalu";
-      } else r[idxSejak] = "";
+      } else {
+        r[idxSejak] = "";
+      }
     });
   },
+
   parseObat(obatValue, hargaSatuan) {
-    if (!obatValue) return { qty:1, namaProduk:"", itemsText:"", subtotal:0 };
+    if (!obatValue) return { qty: 1, namaProduk: "", itemsText: "", subtotal: 0 };
     const parts = String(obatValue).trim().split(/\s+/);
-    const qty = parseInt(parts[0],10) || 1;
+    const qty = parseInt(parts[0], 10) || 1;
     const namaProduk = parts.slice(2).join(" ");
     const itemsText = `${namaProduk}   x ${qty}`;
     const subtotal = qty * (Number(hargaSatuan) || 0);
     return { qty, namaProduk, itemsText, subtotal };
   },
+
   refreshInvoiceFields(textarea, fields, obatnya, hargaSatuan) {
     const { subtotal } = Utils.parseObat(obatnya, hargaSatuan);
-    const ongkir = parseInt(fields.ongkir.value,10)||0;
-    const diskonObat = parseInt(fields.diskonObat.value,10)||0;
-    const diskonOngkir = parseInt(fields.diskonOngkir.value,10)||0;
+    const ongkir = parseInt(fields.ongkir.value, 10) || 0;
+    const diskonObat = parseInt(fields.diskonObat.value, 10) || 0;
+    const diskonOngkir = parseInt(fields.diskonOngkir.value, 10) || 0;
     const hemat = diskonObat + diskonOngkir;
     const total = subtotal + ongkir - hemat;
+
     let text = textarea.value;
     text = text.replace(/- Subtotal Obat\s*:\s*Rp[^\n]*/i, `- Subtotal Obat   : ${Utils.formatRupiah(subtotal)}`);
     text = text.replace(/- Ongkir\s*:\s*Rp[^\n]*/i, `- Ongkir               : ${Utils.formatRupiah(ongkir)}`);
@@ -325,151 +376,63 @@ const Utils = {
     text = text.replace(/^> *Anda hemat.*$/mi, `> Anda hemat ${Utils.formatRupiah(hemat)}`);
     text = text.replace(/^\**\s*Total Tagihan COD\s*:?\s*Rp[^\n]*\**$/mi, `*Total Tagihan COD ${Utils.formatRupiah(total)}*`);
     textarea.value = text;
-  },
-
-  // map kurir string to binderbyte code
-  courierCodeFromString(str) {
-    if (!str) return "";
-    const s = String(str).toLowerCase();
-    if (s.includes("jne")) return "jne";
-    if (s.includes("jnt") || s.includes("j&t") || s.includes("jat") ) return "jnt";
-    if (s.includes("ninja")) return "ninja";
-    if (s.includes("spx")) return "spx";
-    if (s.includes("id express") || s.includes("idexpress") || s.includes("ide")) return "ide";
-    // fallback: return only letters/digits
-    return s.replace(/[^a-z0-9]/g,"");
   }
 };
+/* ===================== end Utilities ===================== */
 
-/* ===================== DATA (server-side paging & search) ===================== */
+/* ===================== 4) Data Access (RDB) ===================== */
 const Data = {
-  rootRef() { return ref(db, "data-pelanggan"); },
-
-  async fetchPage({ pageSize = state.pageSize, mode = "byDate", namePrefix = "", status = "", cursor = null } = {}) {
-    try {
-      // MODE status (exact)
-      if (mode === "byStatus" && status) {
-        const q = query(this.rootRef(), orderByChild("STATUS"), equalTo(status), limitToFirst(pageSize));
-        const snap = await get(q);
-        if (!snap.exists()) return [];
-        const raw = snap.val();
-        const rows = Object.entries(raw).map(([id,obj])=>{
-          const arr = HEADERS.map(h=> obj[h] ?? "");
-          arr._id = id; return arr;
-        }).sort((a,b) => new Date(b[HEADERS.indexOf("TGLORDER")]) - new Date(a[HEADERS.indexOf("TGLORDER")]));
-        return rows.slice(0, pageSize);
-      }
-
-      // MODE name prefix (try several capitalization variants to minimize "no result" due to casing)
-      if (mode === "byNamePrefix" && namePrefix) {
-        const attempts = [
-          namePrefix,
-          namePrefix.charAt(0).toUpperCase() + namePrefix.slice(1),
-          namePrefix.toUpperCase()
-        ].filter(Boolean);
-
-        for (const pref of attempts) {
-          const q = query(this.rootRef(), orderByChild("NAMA"), startAt(pref), endAt(pref + "\uf8ff"), limitToFirst(pageSize));
-          const snap = await get(q);
-          if (snap.exists()) {
-            const raw = snap.val();
-            const rows = Object.entries(raw).map(([id,obj])=>{
-              const arr = HEADERS.map(h=> obj[h] ?? "");
-              arr._id = id; return arr;
-            }).sort((a,b) => new Date(b[HEADERS.indexOf("TGLORDER")]) - new Date(a[HEADERS.indexOf("TGLORDER")]));
-            if (rows.length > 0) return rows.slice(0, pageSize);
-          }
-        }
-        // if none found with prefix queries, return empty (don't fetch whole DB)
-        return [];
-      }
-
-      // MODE byDate
-      if (mode === "byDate") {
-        if (!cursor || !cursor.tgl) {
-          const q = query(this.rootRef(), orderByChild("TGLORDER"), limitToLast(pageSize));
-          const snap = await get(q);
-          if (!snap.exists()) return [];
-          const raw = snap.val();
-          const rows = Object.entries(raw).map(([id,obj])=> {
-            const arr = HEADERS.map(h=> obj[h] ?? ""); arr._id = id; return arr;
-          }).sort((a,b) => new Date(b[HEADERS.indexOf("TGLORDER")]) - new Date(a[HEADERS.indexOf("TGLORDER")]));
-          return rows;
-        } else {
-          const lastTgl = cursor.tgl;
-          const q = query(this.rootRef(), orderByChild("TGLORDER"), endAt(lastTgl), limitToLast(pageSize + 1));
-          const snap = await get(q);
-          if (!snap.exists()) return [];
-          const raw = snap.val();
-          let rows = Object.entries(raw).map(([id,obj])=>{
-            const arr = HEADERS.map(h=> obj[h] ?? ""); arr._id = id; return arr;
-          }).sort((a,b) => new Date(b[HEADERS.indexOf("TGLORDER")]) - new Date(a[HEADERS.indexOf("TGLORDER")]));
-          // remove duplicate equal to cursor.tgl (first occurrence)
-          const idxDup = rows.findIndex(r => String(r[HEADERS.indexOf("TGLORDER")]) === String(lastTgl));
-          if (idxDup >= 0) rows.splice(idxDup, 1);
-          rows = rows.slice(0, pageSize);
-          return rows;
-        }
-      }
-
-      return [];
-    } catch (err) {
-      console.error("Data.fetchPage err", err);
-      return [];
-    }
+  async loadAll() {
+    const snapshot = await get(ref(db, "data-pelanggan"));
+    if (!snapshot.exists()) return [];
+    const raw = snapshot.val();
+    const rows = Object.entries(raw).map(([id, obj]) => {
+      const arr = HEADERS.map(h => obj[h] ?? "");
+      arr._id = id;
+      return arr;
+    });
+    return rows;
   },
-
   async updateById(id, rowArray) {
     const payload = {};
     HEADERS.forEach((col, i) => payload[col] = rowArray[i] ?? "");
     await update(ref(db, `data-pelanggan/${id}`), payload);
   },
-
   async patchById(id, patchObj) {
     await update(ref(db, `data-pelanggan/${id}`), patchObj);
-  },
-
-  async fetchDistinctStatuses() {
-    try {
-      const q = query(this.rootRef(), orderByChild("STATUS"), limitToFirst(2000));
-      const snap = await get(q);
-      if (!snap.exists()) return [];
-      const raw = snap.val();
-      const set = new Set();
-      Object.values(raw).forEach(obj => { if (obj && obj.STATUS) set.add(String(obj.STATUS)); });
-      return Array.from(set).sort();
-    } catch (err) {
-      console.error("fetchDistinctStatuses", err);
-      return [];
-    }
   }
 };
 
-/* ===================== RENDER helpers ===================== */
+/* ===================== 5) Render ===================== */
 const Render = {
-  renderFilterOptions: async function() {
+  renderFilterOptions() {
     const sel = document.getElementById("filterStatus");
     if (!sel) return;
-    sel.querySelectorAll("option:not(:first-child)").forEach(o=>o.remove());
-    const statuses = await Data.fetchDistinctStatuses();
-    statuses.forEach(s => {
-      const opt = document.createElement("option"); opt.value = s; opt.textContent = s; sel.appendChild(opt);
+    const statusIdx = HEADERS.indexOf("STATUS");
+    const distinct = [...new Set(state.rawRows.map(r => r[statusIdx]).filter(Boolean))].sort();
+    // clear except first (Semua)
+    sel.querySelectorAll("option:not(:first-child)").forEach(o => o.remove());
+    distinct.forEach(s => {
+      const opt = document.createElement("option");
+      opt.value = s; opt.textContent = s;
+      sel.appendChild(opt);
     });
   },
-
-  table: function() {
+  table() {
     const thead = document.querySelector("#dataTable thead tr");
     const tbody = document.querySelector("#dataTable tbody");
     if (!thead || !tbody) return;
-    const cols = VISIBLE_COLUMNS.filter(c=> HEADERS.includes(c));
-    thead.innerHTML = "<th style='width:56px'>#</th>" + cols.map(c=>`<th>${c}</th>`).join("") + "<th style='width:160px'>AKSI</th>";
-    tbody.innerHTML = "";
-    const startIdx = state.pageIndex * state.pageSize;
 
-    state.pageData.forEach((row,i)=>{
+    const cols = VISIBLE_COLUMNS.filter(c => HEADERS.includes(c));
+    thead.innerHTML = "<th style='width:56px'>#</th>" + cols.map(c => `<th>${c}</th>`).join("") + "<th style='width:140px'>AKSI</th>";
+
+    tbody.innerHTML = "";
+    const startIdx = (state.currentPage - 1) * state.rowsPerPage;
+
+    state.pageData.forEach((row, i) => {
       const tr = document.createElement("tr");
       let cells = `<td>${startIdx + i + 1}</td>`;
-      cols.forEach(col=>{
+      cols.forEach(col => {
         const idx = HEADERS.indexOf(col);
         let val = row[idx] ?? "";
         if (col === "TGLORDER" || col === "TANGGALUPDATE") val = Utils.formatDate(val);
@@ -477,157 +440,204 @@ const Render = {
         cells += `<td>${val}</td>`;
       });
 
-      const localIndex = i;
+      const localIndex = i; // index dalam pageData
       cells += `<td class="text-nowrap">
-        <button class="btn btn-sm btn-warning me-1" title="Edit" onclick="App.showEditFull(${localIndex})"><i class="bi bi-pencil-fill"></i></button>
-        <button class="btn btn-sm btn-success me-1" title="Kirim WA" onclick="App.showWaModal(${localIndex})"><i class="bi bi-whatsapp"></i></button>
-        <button class="btn btn-sm btn-primary" title="Cek Resi" onclick="App.confirmTrackResi(${localIndex})"><i class="bi bi-truck"></i></button>
+        <button class="btn btn-sm btn-warning me-1" title="Edit" onclick="App.showEditFull(${localIndex})">
+          <i class="bi bi-pencil-fill"></i>
+        </button>
+        <button class="btn btn-sm btn-success me-1" title="Kirim WA" onclick="App.showWaModal(${localIndex})">
+          <i class="bi bi-whatsapp"></i>
+        </button>
+        <button class="btn btn-sm btn-primary" title="Cek Resi" onclick="App.confirmTrackResi(${localIndex})">
+          <i class="bi bi-truck"></i>
+        </button>
       </td>`;
 
-      tr.innerHTML = cells; tbody.appendChild(tr);
+      tr.innerHTML = cells;
+      tbody.appendChild(tr);
     });
 
-    // pagination controls
-    const paginationEl = document.getElementById("pagination");
-    paginationEl.innerHTML = "";
+    // Pagination
+    Render.pagination();
+    // Total label
+    document.getElementById("totalRowsLabel").textContent = String(state.filteredRows.length);
+  },
+  pagination() {
+    const container = document.getElementById("pagination");
+    if (!container) return;
+    container.innerHTML = "";
 
-    const btn = (label, cls, cb, disabled=false) => {
+    const totalPages = Math.max(1, Math.ceil(state.filteredRows.length / state.rowsPerPage));
+
+    const btn = (label, page, disabled=false, active=false) => {
       const b = document.createElement("button");
-      b.className = `btn btn-sm ${cls}`;
+      b.className = `btn btn-sm ${active ? "btn-primary" : "btn-outline-primary"}`;
       b.textContent = label;
       b.disabled = disabled;
-      b.onclick = cb;
+      b.onclick = () => Actions.changePage(page);
       return b;
     };
 
-    paginationEl.appendChild(btn("<< Prev", "btn-outline-primary", () => Actions.prevPage(), state.cursorStack.length === 0));
-    paginationEl.appendChild(btn("Next >>", "btn-outline-primary", () => Actions.nextPage(), !state.currentCursor || state.pageData.length < state.pageSize));
+    container.appendChild(btn("First", 1, state.currentPage===1));
+    container.appendChild(btn("Prev", Math.max(1, state.currentPage-1), state.currentPage===1));
 
-    document.getElementById("pageIndicator").textContent = String(state.pageIndex + 1);
-    document.getElementById("pageInfo").textContent = (state.pageData.length>0) ? `${state.pageData.length} items` : "0 items";
+    const maxVisible = 5;
+    let start = Math.max(1, state.currentPage - Math.floor(maxVisible/2));
+    let end = Math.min(totalPages, start + maxVisible - 1);
+    if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
 
-    document.getElementById("totalRowsLabel").textContent = "—";
+    if (start > 1) {
+      container.appendChild(btn("1", 1, false, state.currentPage===1));
+      if (start > 2) {
+        const span = document.createElement("span"); span.className = "px-1"; span.textContent = "…";
+        container.appendChild(span);
+      }
+    }
+
+    for (let p = start; p <= end; p++) {
+      container.appendChild(btn(String(p), p, false, state.currentPage===p));
+    }
+
+    if (end < totalPages) {
+      if (end < totalPages - 1) {
+        const span = document.createElement("span"); span.className = "px-1"; span.textContent = "…";
+        container.appendChild(span);
+      }
+      container.appendChild(btn(String(totalPages), totalPages, false, state.currentPage===totalPages));
+    }
+
+    container.appendChild(btn("Next", Math.min(totalPages, state.currentPage+1), state.currentPage===totalPages));
+    container.appendChild(btn("Last", totalPages, state.currentPage===totalPages));
   }
 };
 
-/* ===================== ACTIONS ===================== */
+/* ===================== 6) Actions (logic) ===================== */
 const Actions = {
-  async loadFirstPage({ mode } = { mode: undefined }) {
-    state.cursorStack = [];
-    state.currentCursor = null;
-    state.pageIndex = 0;
-    await Actions._loadPage({ mode });
+  async loadData() {
+    // load semua data
+    state.rawRows = await Data.loadAll();
+
+    // hitung LASTUPDATE (derived)
+    Utils.hitungSejakUpdate(state.rawRows);
+
+    // filter & search
+    Actions.applySearchFilter();
+
+    // render
+    Render.renderFilterOptions();
+    Render.table();
   },
 
-  async nextPage() {
-    if (!state.pageData || state.pageData.length === 0) return;
-    const oldest = state.pageData[state.pageData.length - 1][HEADERS.indexOf("TGLORDER")];
-    if (oldest) state.cursorStack.push({ tgl: oldest });
-    const cursor = { tgl: oldest };
-    await Actions._loadPage({ mode: Actions._currentMode(), cursor });
-    state.pageIndex++;
-  },
+  applySearchFilter() {
+    let rows = [...state.rawRows];
 
-  async prevPage() {
-    if (state.cursorStack.length === 0) {
-      await Actions.loadFirstPage({ mode: Actions._currentMode() });
-      return;
+    // Filter status
+    if (state.currentStatus) {
+      const idxStatus = HEADERS.indexOf("STATUS");
+      rows = rows.filter(r => String(r[idxStatus] || "") === state.currentStatus);
     }
-    state.cursorStack.pop();
-    const prevCursor = state.cursorStack.length > 0 ? state.cursorStack[state.cursorStack.length - 1] : null;
-    if (!prevCursor) {
-      await Actions.loadFirstPage({ mode: Actions._currentMode() });
-      state.pageIndex = 0;
-    } else {
-      await Actions._loadPage({ mode: Actions._currentMode(), cursor: prevCursor });
-      state.pageIndex = Math.max(0, state.pageIndex - 1);
+
+    // Search (di semua kolom)
+    if (state.currentSearch) {
+      const kw = state.currentSearch.toLowerCase();
+      rows = rows.filter(r => r.some(v => String(v || "").toLowerCase().includes(kw)));
     }
+
+    // Sort default TGLORDER desc (jika ada data tanggal valid)
+    const idxTgl = HEADERS.indexOf("TGLORDER");
+    rows.sort((a,b) => {
+      const da = new Date(a[idxTgl]), db = new Date(b[idxTgl]);
+      if (isNaN(da) && isNaN(db)) return 0;
+      if (isNaN(da)) return 1;
+      if (isNaN(db)) return -1;
+      return db - da;
+    });
+
+    state.filteredRows = rows;
+    state.totalRows = rows.length;
+
+    // Pagination slice
+    const start = (state.currentPage - 1) * state.rowsPerPage;
+    state.pageData = rows.slice(start, start + state.rowsPerPage);
   },
 
-  _currentMode() {
-    if (state.currentStatus) return "byStatus";
-    if (state.currentSearch) return "byNamePrefix";
-    return "byDate";
+  changePage(page) {
+    const totalPages = Math.max(1, Math.ceil(state.filteredRows.length / state.rowsPerPage));
+    state.currentPage = Math.min(Math.max(1, page), totalPages);
+    Actions.applySearchFilter();
+    Render.table();
   },
-
-  async _loadPage({ mode = undefined, cursor = null } = {}) {
-    setUIBusy(true);
-    try {
-      state.pageSize = parseInt(document.getElementById("rowsPerPage").value,10) || state.pageSize;
-      state.currentSearch = (document.getElementById("searchBox").value || "").trim();
-      state.currentStatus = (document.getElementById("filterStatus").value || "").trim();
-
-      const usedMode = mode || Actions._currentMode();
-      const rows = await Data.fetchPage({
-        pageSize: state.pageSize,
-        mode: usedMode,
-        namePrefix: state.currentSearch,
-        status: state.currentStatus,
-        cursor
-      });
-
-      state.pageData = rows || [];
-      state.currentCursor = (state.pageData.length > 0) ? { tgl: state.pageData[state.pageData.length - 1][HEADERS.indexOf("TGLORDER")] } : null;
-      Utils.hitungSejakUpdate(state.pageData);
-      await Render.renderFilterOptions();
-      Render.table();
-    } catch (err) {
-      console.error("loadPage err", err);
-      alert("Terjadi error saat memuat data: " + err.message);
-    } finally {
-      setUIBusy(false);
-    }
-  },
-
-  async loadData() { await Actions.loadFirstPage({ mode: Actions._currentMode() }); },
 
   resetFilter() {
     document.getElementById("searchBox").value = "";
     document.getElementById("filterStatus").value = "";
-    state.currentSearch = ""; state.currentStatus = "";
-    state.pageIndex = 0; state.cursorStack = []; state.currentCursor = null;
-    Actions.loadFirstPage();
+    state.currentSearch = "";
+    state.currentStatus = "";
+    state.currentPage = 1;
+    Actions.applySearchFilter();
+    Render.table();
   },
 
-  /* Edit */
+  /* ====== Edit ====== */
   showEditFull(localIndex) {
     const modalBody = document.querySelector("#editForm .modal-body");
     if (!modalBody) return;
     modalBody.innerHTML = "";
-    const row = state.pageData[localIndex];
-    if (!row) return alert("Baris tidak ditemukan.");
 
-    HEADERS.forEach((col,i) => {
+    const row = state.pageData[localIndex];
+    if (!row) return;
+
+    // build inputs dari HEADERS
+    HEADERS.forEach((col, i) => {
       const val = row[i] ?? "";
-      const div = document.createElement("div"); div.className = "mb-3";
-      div.innerHTML = `<label class="form-label">${col}</label>
-                       <input type="text" class="form-control" name="col_${i}" value="${String(val).replace(/"/g,'&quot;')}">`;
-      modalBody.appendChild(div);
+      const formGroup = document.createElement("div");
+      formGroup.className = "mb-3";
+      formGroup.innerHTML = `
+        <label class="form-label">${col}</label>
+        <input type="text" class="form-control" name="col_${i}" value="${String(val).replace(/"/g,'&quot;')}">
+      `;
+      modalBody.appendChild(formGroup);
     });
 
-    const hidden = document.createElement("input"); hidden.type="hidden"; hidden.name="localIndex"; hidden.value=String(localIndex);
+    // hidden index
+    const hidden = document.createElement("input");
+    hidden.type = "hidden";
+    hidden.name = "localIndex";
+    hidden.value = String(localIndex);
     modalBody.appendChild(hidden);
+
     new bootstrap.Modal(document.getElementById("editModal")).show();
   },
 
   async submitEditForm(e) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    const localIndex = parseInt(fd.get("localIndex"),10);
-    const newRow = HEADERS.map((_,i) => fd.get(`col_${i}`) ?? "");
+    const localIndex = parseInt(fd.get("localIndex"), 10);
+
+    // reconstruct row array
+    const newRow = HEADERS.map((_, i) => fd.get(`col_${i}`) ?? "");
+
     const row = state.pageData[localIndex];
-    if (!row) return alert("Baris tidak ditemukan.");
-    const id = row._id;
+    if (!row) return;
+
+    const globalIndex = (state.currentPage - 1) * state.rowsPerPage + localIndex;
+    const id = state.filteredRows[globalIndex]._id;
+
     await Data.updateById(id, newRow);
-    await Actions._loadPage({ mode: Actions._currentMode(), cursor: state.currentCursor });
+
+    // update di cache
+    state.filteredRows[globalIndex] = Object.assign([...newRow], { _id: id });
+    Actions.applySearchFilter();
+    Render.table();
+
     bootstrap.Modal.getInstance(document.getElementById("editModal")).hide();
   },
 
-  /* WA */
+  /* ====== WhatsApp ====== */
   showWaModal(localIndex) {
     state.waContextIndex = localIndex;
     const row = state.pageData[localIndex];
-    if (!row) return alert("Baris tidak ditemukan.");
+    if (!row) return;
 
     const nama = row[HEADERS.indexOf("NAMA")] || "";
     const noresi = row[HEADERS.indexOf("NORESI")] || "";
@@ -645,15 +655,22 @@ const Actions = {
     const diskonObatEl = document.getElementById("invDiskonObat");
     const diskonOngkirEl = document.getElementById("invDiskonOngkir");
 
-    textarea.value = Utils.fillTemplate(WATEMPLATES.infopesanan, row)
-      .replace("{NAMA}", nama).replace("{NORESI}", noresi).replace("{BARANG}", obatnya)
-      .replace("{TGLUPDATE}", tglupdate).replace("{TGLORDER}", tglorder)
-      .replace("{KURIRE}", kurir).replace("{TRACKING}", tracking).replace("{STATUS}", status);
+    // default infopesanan
+    textarea.value = Utils.fillTemplate(WATemplates.infopesanan, row)
+      .replace("{NAMA}", nama)
+      .replace("{NORESI}", noresi)
+      .replace("{OBATNYA}", obatnya)
+      .replace("{TGLUPDATE}", tglupdate)
+      .replace("{TGLORDER}", tglorder)
+      .replace("{KURIRE}", kurir)
+      .replace("{TRACKING}", tracking)
+      .replace("{STATUS}", status);
 
     select.value = "";
     invBox.style.display = "none";
     ongkirEl.value = "0"; diskonObatEl.value = "0"; diskonOngkirEl.value = "0";
 
+    // on change template
     select.onchange = () => {
       if (select.value === "invoice") {
         invBox.style.display = "block";
@@ -664,25 +681,40 @@ const Actions = {
         const hemat = dObat + dOngkir;
         const total = subtotal + ongkir - hemat;
 
-        textarea.value = Utils.fillTemplate(WATEMPLATES.invoice, row)
-          .replace("{TGLORDER}", tglorder).replace("{NAMA}", nama).replace("{ITEMS}", itemsText)
-          .replace("{NORESI}", noresi).replace("{BARANG}", obatnya)
-          .replace("{SUBTOTAL}", Utils.formatRupiah(subtotal)).replace("{ONGKIR}", Utils.formatRupiah(ongkir))
-          .replace("{DISKON_OBAT}", Utils.formatRupiah(dObat)).replace("{KURIRE}", kurir)
-          .replace("{DISKON_ONGKIR}", Utils.formatRupiah(dOngkir)).replace("{HEMAT}", Utils.formatRupiah(hemat))
+        textarea.value = Utils.fillTemplate(WATemplates.invoice, row)
+          .replace("{TGLORDER}", tglorder)
+          .replace("{NAMA}", nama)
+          .replace("{ITEMS}", itemsText)
+          .replace("{NORESI}", noresi)
+          .replace("{OBATNYA}", obatnya)
+          .replace("{SUBTOTAL}", Utils.formatRupiah(subtotal))
+          .replace("{ONGKIR}", Utils.formatRupiah(ongkir))
+          .replace("{DISKON_OBAT}", Utils.formatRupiah(dObat))
+          .replace("{KURIRE}", kurir)
+          .replace("{DISKON_ONGKIR}", Utils.formatRupiah(dOngkir))
+          .replace("{HEMAT}", Utils.formatRupiah(hemat))
           .replace("{TOTAL}", Utils.formatRupiah(total));
 
         [ongkirEl, diskonObatEl, diskonOngkirEl].forEach(el => {
-          el.oninput = () => Utils.refreshInvoiceFields(textarea, { ongkir: ongkirEl, diskonObat: diskonObatEl, diskonOngkir: diskonOngkirEl }, obatnya, state.hargaSatuan);
+          el.oninput = () => Utils.refreshInvoiceFields(
+            textarea,
+            { ongkir: ongkirEl, diskonObat: diskonObatEl, diskonOngkir: diskonOngkirEl },
+            obatnya, state.hargaSatuan
+          );
         });
+
       } else {
         invBox.style.display = "none";
-        const tpl = WATEMPLATES[select.value] || WATEMPLATES.infopesanan;
+        const tpl = WATemplates[select.value] || WATemplates.infopesanan;
         textarea.value = Utils.fillTemplate(tpl, row)
-          .replace("{NAMA}", nama).replace("{NORESI}", noresi).replace("{BARANG}", obatnya)
-          .replace("{TGLUPDATE}", tglupdate).replace("{TGLORDER}", tglorder)
-          .replace("{KURIRE}", Utils.formatKurir(row[HEADERS.indexOf("KURIR")]||""))
-          .replace("{TRACKING}", tracking).replace("{STATUS}", status);
+          .replace("{NAMA}", nama)
+          .replace("{NORESI}", noresi)
+          .replace("{OBATNYA}", obatnya)
+          .replace("{TGLUPDATE}", tglupdate)
+          .replace("{TGLORDER}", tglorder)
+          .replace("{KURIRE}", kurir)
+          .replace("{TRACKING}", tracking)
+          .replace("{STATUS}", status);
       }
     };
 
@@ -690,54 +722,50 @@ const Actions = {
     sendBtn.onclick = () => {
       const nomor = Utils.formatPhone(row[HEADERS.indexOf("WHATSAPP")]||"");
       const pesan = encodeURIComponent(textarea.value);
-      // use window.open to ensure cross-platform
       window.open(`https://wa.me/${nomor}?text=${pesan}`, "_blank");
     };
 
     new bootstrap.Modal(document.getElementById("waModal")).show();
   },
 
-  /* Tracking */
+  /* ====== Tracking / Cek Resi (BinderByte) ====== */
   confirmTrackResi(localIndex) {
-    if (confirm("Yakin mau cek resi untuk data ini?")) Actions.trackResi(localIndex);
+    if (confirm("Yakin mau cek resi untuk data ini?")) {
+      Actions.trackResi(localIndex);
+    }
   },
 
   async trackResi(localIndex) {
+    const row = state.pageData[localIndex];
+    if (!row) return alert("Baris tidak ditemukan.");
+    const idx = (name) => HEADERS.indexOf(name);
+
+    const resi = row[idx("NORESI")];
+    const kurir = row[idx("KURIR")];
+    if (!resi || !kurir) return alert("Nomor resi atau kurir kosong!");
+
     try {
-      const row = state.pageData[localIndex];
-      if (!row) return alert("Baris tidak ditemukan.");
-      const resi = (row[HEADERS.indexOf("NORESI")] || "").toString().trim();
-      const kurirRaw = (row[HEADERS.indexOf("KURIR")] || "").toString().trim();
-      if (!resi || !kurirRaw) return alert("Nomor resi atau kurir kosong!");
+      const url = `https://api.binderbyte.com/v1/track?api_key=7dfb0627d2a03a05e81b82f4565f6b1e1517f280708a6cc9644b58ff6330a793&courier=${encodeURIComponent(kurir)}&awb=${encodeURIComponent(resi)}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Gagal fetch BinderByte");
 
-      const courierCode = Utils.courierCodeFromString(kurirRaw) || kurirRaw.toLowerCase();
-      const url = `https://api.binderbyte.com/v1/track?api_key=${BINDERBYTE_API_KEY}&courier=${encodeURIComponent(courierCode)}&awb=${encodeURIComponent(resi)}`;
-
-      const resp = await fetch(url);
-      if (!resp.ok) throw new Error("Gagal fetch BinderByte (network)");
-      const json = await resp.json();
-
-      if (!json || json.status === false) {
-        console.warn("BinderByte response", json);
-        return alert("BinderByte: " + (json.message || "Tidak dapat mengambil data tracking"));
-      }
-
-      const history = json.data?.history || [];
+      const result = await response.json();
+      const history = result.data?.history || [];
       if (history.length === 0) return alert("Tidak ada history tracking!");
 
       const last = history[0];
       const lastDesc = last.desc || "";
       const lastDate = last.date || "";
-      const status = json.data?.summary?.status || "";
+      const status   = result.data?.summary?.status || "";
 
-      // duration
+      // Durasi kirim
       let duration = "";
       if (history.length > 1) {
         const start = new Date(history[history.length - 1].date);
-        const end = new Date(history[0].date);
-        const diff = end - start;
+        const end   = new Date(history[0].date);
+        const diff  = end - start;
         if (!isNaN(diff)) {
-          const hours = Math.floor(diff / (1000*60*60));
+          const hours = Math.floor(diff / (1000 * 60 * 60));
           if (hours < 24) duration = hours + " Jam";
           else {
             const days = Math.floor(hours / 24);
@@ -747,8 +775,11 @@ const Actions = {
         }
       }
 
-      // patch to DB
-      const id = row._id;
+      // cari id dokumen (global index)
+      const globalIndex = (state.currentPage - 1) * state.rowsPerPage + localIndex;
+      const id = state.filteredRows[globalIndex]._id;
+
+      // patch ke DB
       await Data.patchById(id, {
         PELACAKANTERBARU: lastDesc,
         TANGGALUPDATE: lastDate,
@@ -756,67 +787,52 @@ const Actions = {
         DURASIKIRIM: duration
       });
 
-      // update local and render
-      row[HEADERS.indexOf("PELACAKANTERBARU")] = lastDesc;
-      row[HEADERS.indexOf("TANGGALUPDATE")] = lastDate;
-      row[HEADERS.indexOf("STATUS")] = status;
-      row[HEADERS.indexOf("DURASIKIRIM")] = duration;
+      // update di cache
+      row[idx("PELACAKANTERBARU")] = lastDesc;
+      row[idx("TANGGALUPDATE")] = lastDate;
+      row[idx("STATUS")] = status;
+      row[idx("DURASIKIRIM")] = duration;
 
+      // recalc LASTUPDATE hanya baris ini
       Utils.hitungSejakUpdate([row]);
       Render.table();
-      alert("Resi berhasil diperbarui!");
+
     } catch (err) {
-      console.error("trackResi error", err);
-      alert("Terjadi error saat tracking resi: " + (err.message || String(err)));
+      console.error(err);
+      alert("Terjadi error saat tracking resi: " + err.message);
     }
   }
 };
 
-/* ===================== UI Wiring ===================== */
-function setUIBusy(isBusy) {
-  const els = document.querySelectorAll("#btnRefresh, #btnReset, #rowsPerPage, #searchBox, #filterStatus");
-  els.forEach(el => el.disabled = isBusy);
-}
-
+/* ===================== 7) Wiring UI ===================== */
 document.getElementById("btnRefresh").addEventListener("click", () => Actions.loadData());
 document.getElementById("btnReset").addEventListener("click", () => Actions.resetFilter());
-document.getElementById("rowsPerPage").addEventListener("change", async (e) => {
-  state.pageSize = parseInt(e.target.value,10) || state.pageSize;
-  state.pageIndex = 0; state.cursorStack = []; state.currentCursor = null;
-  await Actions.loadFirstPage();
+document.getElementById("rowsPerPage").addEventListener("change", (e) => {
+  state.rowsPerPage = parseInt(e.target.value, 10) || 10;
+  state.currentPage = 1;
+  Actions.applySearchFilter();
+  Render.table();
 });
-let searchTimeout = null;
 document.getElementById("searchBox").addEventListener("input", (e) => {
-  clearTimeout(searchTimeout);
-  searchTimeout = setTimeout(async () => {
-    state.currentSearch = e.target.value.trim();
-    state.pageIndex = 0; state.cursorStack = []; state.currentCursor = null;
-    await Actions.loadFirstPage();
-  }, 350);
+  state.currentSearch = e.target.value.trim();
+  state.currentPage = 1;
+  Actions.applySearchFilter();
+  Render.table();
 });
-document.getElementById("filterStatus").addEventListener("change", async (e) => {
+document.getElementById("filterStatus").addEventListener("change", (e) => {
   state.currentStatus = e.target.value;
-  state.pageIndex = 0; state.cursorStack = []; state.currentCursor = null;
-  await Actions.loadFirstPage();
+  state.currentPage = 1;
+  Actions.applySearchFilter();
+  Render.table();
 });
-document.getElementById("editForm").addEventListener("submit", (e) => Actions.submitEditForm(e));
+document.getElementById("editForm").addEventListener("submit", Actions.submitEditForm);
 
-/* ===================== Init ===================== */
-(async function init() {
-  state.pageSize = parseInt(document.getElementById("rowsPerPage").value,10) || state.pageSize;
-  await Actions.loadFirstPage();
-})();
+/* ===================== 8) Init ===================== */
+Actions.loadData();
 
-/* ===================== Expose App ===================== */
+/* ===================== 9) Expose ke Window (untuk onClick inline) ===================== */
 window.App = {
-  showEditFull: Actions.showEditFull,
-  submitEditForm: Actions.submitEditForm,
-  showWaModal: Actions.showWaModal,
-  confirmTrackResi: Actions.confirmTrackResi,
-  loadData: Actions.loadData,
-  nextPage: Actions.nextPage,
-  prevPage: Actions.prevPage,
-  trackResi: Actions.trackResi
+  ...Actions
 };
 </script>
 </body>
