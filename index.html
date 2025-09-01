@@ -191,7 +191,7 @@ let VISIBLE_COLUMNS = [
 ];
 
 const WATemplates = {
-  infopesanan: "Halo Pak/Bu {NAMA}, pesanan Anda {OBATNYA} tanggal {TGLORDER} sudah kami proses dengan resi {NORESI}.",
+  infopesanan: "Halo Pak/Bu {NAMA}, pesanan Anda {OBATNYA} tanggal {TGLORDER} sudah diproses & segera dikirimkan menggunakan ekspedisi {KURIRE} dengan No. Resi {NORESI}.",
   infotracking: "Halo Pak/Bu {NAMA}, Pesanan Anda {OBATNYA} dengan nomor resi *{NORESI}* status saat ini *{STATUS}*. *{TRACKING}* di update pada *{TGLUPDATE}*. Terima kasih :)",
   followup: "Halo Pak/Bu {NAMA}, Bagaimana perkembangannya setelah konsumsi {OBATNYA}?",
   invoice: `*DATA PESANAN*
@@ -228,11 +228,12 @@ _*Ringkasan Tagihan*_
 
 > Anda hemat Rp {HEMAT}
 --------------------------------------
-*Total Tagihan COD : Rp {TOTAL}*`,
+*Total Tagihan COD : Rp {TOTAL}*
+_* Ongkir sudah termasuk biaya COD_`,
   reminder: `Selamat pagi Pak/Bu {NAMA} 🙏😊
 
 Alhamdulillah obatnya sudah sampai ya.
-Diminum rutin ya 3x sehari sekali minum 2 kapsul setelah makan (Disarankan dengan air hangat), semoga lekas diberikan kesembuhan 🙏🤲 _Aamiin ya Rabbal ‘alamiin_.
+Diminum rutin 3x sehari ya, sekali minum 2 kapsul setelah makan (Disarankan dengan air hangat), semoga lekas diberi kesembuhan 🙏🤲 _Aamiin ya Rabbal ‘alamiin_.
 
 Untuk sementara, mohon *hindari dulu*:
 
