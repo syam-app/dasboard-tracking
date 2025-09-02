@@ -34,7 +34,7 @@
 <div class="container py-4">
   <div class="d-flex align-items-center justify-content-between mb-3">
     <h3 class="m-0 fw-bold">Dashboard Order</h3>
-    <div class="small text-muted">Realtime db • <span id="totalRowsLabel">0</span> records</div>
+    <div class="small text-muted">Realtime db • <span id="totalRowsLabel">0</span> Data</div>
   </div>
 
   <!-- Controls -->
@@ -191,8 +191,8 @@ let VISIBLE_COLUMNS = [
 ];
 
 const WATemplates = {
-  infopesanan: "Halo Pak/Bu {NAMA}, pesanan Anda {OBATNYA} tanggal {TGLORDER} sudah diproses & segera dikirimkan menggunakan ekspedisi {KURIRE} dengan No. Resi {NORESI}.",
-  infotracking: "Halo Pak/Bu {NAMA}, Pesanan Anda {OBATNYA} dengan nomor resi *{NORESI}* status saat ini *{STATUS}*. *{TRACKING}* di update pada *{TGLUPDATE}*. Terima kasih :)",
+  infopesanan: "Halo Pak/Bu {NAMA}, pesanan Anda *{OBATNYA}* pada tanggal {TGLORDER} sudah diproses & segera dikirimkan menggunakan ekspedisi {KURIRE} dengan No. Resi *{NORESI}*.",
+  infotracking: "Halo Pak/Bu {NAMA}, Pesanan Anda {OBATNYA} dengan nomor resi *{NORESI}* status saat ini {STATUS}. *{TRACKING}* di update pada *{TGLUPDATE}*. Terima kasih :)",
   followup: "Halo Pak/Bu {NAMA}, Bagaimana perkembangannya setelah konsumsi {OBATNYA}?",
   invoice: `*DATA PESANAN*
 ---------------------------------------------
