@@ -40,25 +40,36 @@
   <!-- Controls -->
   <div class="card mb-3">
     <div class="card-body">
-      <div class="row g-2 align-items-end">
-        <div class="col-md-4">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-3 col-6 col-lg-2">
           <label class="form-label mb-1">Pencarian</label>
           <input id="searchBox" class="form-control" placeholder="Cari nama, resi, kurir, status, dll..." />
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2 col-6 col-lg-2">
           <label class="form-label mb-1">Filter Status</label>
           <select id="filterStatus" class="form-select">
             <option value="">— Semua Status —</option>
             <!-- opsi dinamis terisi saat load -->
           </select>
         </div>
+        <div class="col-lg-6">
+        <div class="row">
+          <div class="col-6">
+            <label>Dari:</label>
+            <input type="date" id="dateStart" class="form-control">
+          </div>
+          <div class="col-6">
+            <label>Sampai:</label>
+            <input type="date" id="dateEnd" class="form-control">
+          </div>
+        </div></div>
         <div class="col-md-2">
           <label class="form-label mb-1">Baris / Hal</label>
           <select id="rowsPerPage" class="form-select">
+            <option>5</option>
             <option>10</option>
             <option>25</option>
             <option>50</option>
-            <option>100</option>
           </select>
         </div>
         <div class="col-md-3 d-flex gap-2">
@@ -79,9 +90,18 @@
         <tbody></tbody>
       </table>
     </div>
-    <div class="card-body">
-      <div id="pagination" class="d-flex flex-wrap gap-2"></div>
+    <div class="container">
+      <div class="row">
+        <div class="card-body col-8">
+          <div id="pagination" class="d-flex flex-wrap gap-2"></div>
+        </div>
+        <div class="col-4 mt-2">
+          <strong>Total Profit: </strong><br>
+          <span id="totalProfit">Rp0</span>
+        </div>
+      </div>
     </div>
+
   </div>
 </div>
 
@@ -182,12 +202,12 @@ const db = getDatabase(app);
 /* ===================== 2) Konstanta & State ===================== */
 const HEADERS = [
   "TGLORDER","NAMA","WHATSAPP","BARANG","ALAMAT","DETAILALAMAT","PAYMENT",
-  "NORESI","KURIR","PELACAKANTERBARU","TANGGALUPDATE","STATUS","DURASIKIRIM"
+  "NORESI","KURIR","PELACAKANTERBARU","TANGGALUPDATE","STATUS","DURASIKIRIM","MODAL","OMSET","PROFIT"
 ];
 let VISIBLE_COLUMNS = [
   "TGLORDER","NAMA","WHATSAPP","BARANG","ALAMAT","PAYMENT",
   "NORESI","KURIR","PELACAKANTERBARU","TANGGALUPDATE","STATUS",
-  "DURASIKIRIM","LASTUPDATE"
+  "DURASIKIRIM","LASTUPDATE","PROFIT"
 ];
 
 const WATemplates = {
@@ -254,9 +274,11 @@ const state = {
   pageData: [],       // data pada halaman aktif
   totalRows: 0,
   currentPage: 1,
-  rowsPerPage: 10,
+  rowsPerPage: 5,
   currentSearch: "",
   currentStatus: "",
+  dateStart: null,   // tanggal awal filter
+  dateEnd: null,  
   hargaSatuan: 269_000,
   waContextIndex: null // index row saat buka WA modal
 };
@@ -292,6 +314,26 @@ const Utils = {
     const map = { spx:"SPX Express", jnt:"J&T Express", jne:"JNE Express", ninja:"NINJA Express", ide:"ID Express" };
     const key = String(code).toLowerCase().trim();
     return map[key] || code;
+  },
+
+    hitungProfit(rows) {
+    const idxModal = HEADERS.indexOf("MODAL");
+    const idxOmset = HEADERS.indexOf("OMSET");
+    const idxProfit = HEADERS.indexOf("PROFIT");
+
+    rows.forEach(r => {
+      const modal = parseFloat(r[idxModal]) || 0;
+      const omset = parseFloat(r[idxOmset]) || 0;
+      const profit = (omset - modal).toString();
+
+      // jika PROFIT kosong atau berbeda, update array + patch ke DB
+      if (r[idxProfit] !== profit) {
+        r[idxProfit] = profit;
+        if (r._id) {
+          Data.patchById(r._id, { PROFIT: profit }); 
+        }
+      }
+    });
   },
 
   /**
@@ -453,6 +495,7 @@ const Render = {
         let val = row[idx] ?? "";
         if (col === "TGLORDER" || col === "TANGGALUPDATE") val = Utils.formatDate(val);
         if (col === "KURIR") val = Utils.formatKurir(val);
+        if (col === "PROFIT")val = Utils.formatRupiah(val);
         cells += `<td>${val}</td>`;
       });
 
@@ -480,7 +523,9 @@ const Render = {
     Render.pagination();
     // Total label
     document.getElementById("totalRowsLabel").textContent = String(state.filteredRows.length);
+    Render.totalProfit();
   },
+  
   pagination() {
     const container = document.getElementById("pagination");
     if (!container) return;
@@ -527,7 +572,24 @@ const Render = {
 
     container.appendChild(btn("Next", Math.min(totalPages, state.currentPage+1), state.currentPage===totalPages));
     container.appendChild(btn("Last", totalPages, state.currentPage===totalPages));
-  }
+  },
+  totalProfit() {
+  const idxProfit = HEADERS.indexOf("PROFIT");
+  let total = 0;
+
+  state.pageData.forEach(r => {
+    const val = parseFloat(r[idxProfit]) || 0;
+    total += val;
+  });
+
+  // Format rupiah
+  const formatted = new Intl.NumberFormat("id-ID", { 
+    style: "currency", 
+    currency: "IDR" 
+  }).format(total);
+
+  document.getElementById("totalProfit").innerText = formatted;
+}
 };
 
 /* ===================== 6) Actions (logic) ===================== */
@@ -535,6 +597,8 @@ const Actions = {
   async loadData() {
     // load semua data
     state.rawRows = await Data.loadAll();
+    // hitung PROFIT otomatis (sekalian patch kalau kosong/beda)
+  Utils.hitungProfit(state.rawRows);
 
     // hitung LASTUPDATE (derived)
     Utils.hitungSejakUpdate(state.rawRows);
@@ -550,17 +614,30 @@ const Actions = {
   applySearchFilter() {
     let rows = [...state.rawRows];
 
-    // Filter status
-    if (state.currentStatus) {
-      const idxStatus = HEADERS.indexOf("STATUS");
-      rows = rows.filter(r => String(r[idxStatus] || "") === state.currentStatus);
-    }
+  // Filter status
+  if (state.currentStatus) {
+    const idxStatus = HEADERS.indexOf("STATUS");
+    rows = rows.filter(r => String(r[idxStatus] || "") === state.currentStatus);
+  }
 
-    // Search (di semua kolom)
-    if (state.currentSearch) {
-      const kw = state.currentSearch.toLowerCase();
-      rows = rows.filter(r => r.some(v => String(v || "").toLowerCase().includes(kw)));
-    }
+  // Filter tanggal (TGLORDER)
+  if (state.dateStart || state.dateEnd) {
+    const idxTgl = HEADERS.indexOf("TGLORDER");
+    rows = rows.filter(r => {
+      const d = new Date(r[idxTgl]);
+      if (isNaN(d)) return false;
+      if (state.dateStart && d < new Date(state.dateStart)) return false;
+      if (state.dateEnd && d > new Date(state.dateEnd)) return false;
+      return true;
+    });
+  }
+
+  // Search (di semua kolom)
+  if (state.currentSearch) {
+    const kw = state.currentSearch.toLowerCase();
+    rows = rows.filter(r => r.some(v => String(v || "").toLowerCase().includes(kw)));
+  }
+
 
     // Sort default TGLORDER desc (jika ada data tanggal valid)
     const idxTgl = HEADERS.indexOf("TGLORDER");
@@ -635,6 +712,15 @@ const Actions = {
 
     // reconstruct row array
     const newRow = HEADERS.map((_, i) => fd.get(`col_${i}`) ?? "");
+
+    // hitung PROFIT dari OMSET - MODAL
+const idxModal = HEADERS.indexOf("MODAL");
+const idxOmset = HEADERS.indexOf("OMSET");
+const idxProfit = HEADERS.indexOf("PROFIT");
+
+const modal = parseFloat(newRow[idxModal]) || 0;
+const omset = parseFloat(newRow[idxOmset]) || 0;
+newRow[idxProfit] = (omset - modal).toString();
 
     const row = state.pageData[localIndex];
     if (!row) return;
@@ -844,7 +930,7 @@ async deleteRow(localIndex) {
 document.getElementById("btnRefresh").addEventListener("click", () => Actions.loadData());
 document.getElementById("btnReset").addEventListener("click", () => Actions.resetFilter());
 document.getElementById("rowsPerPage").addEventListener("change", (e) => {
-  state.rowsPerPage = parseInt(e.target.value, 10) || 10;
+  state.rowsPerPage = parseInt(e.target.value, 10) || 5;
   state.currentPage = 1;
   Actions.applySearchFilter();
   Render.table();
@@ -857,6 +943,19 @@ document.getElementById("searchBox").addEventListener("input", (e) => {
 });
 document.getElementById("filterStatus").addEventListener("change", (e) => {
   state.currentStatus = e.target.value;
+  state.currentPage = 1;
+  Actions.applySearchFilter();
+  Render.table();
+});
+// Filter berdasarkan range tanggal
+document.getElementById("dateStart").addEventListener("change", (e) => {
+  state.dateStart = e.target.value;
+  state.currentPage = 1;
+  Actions.applySearchFilter();
+  Render.table();
+});
+document.getElementById("dateEnd").addEventListener("change", (e) => {
+  state.dateEnd = e.target.value;
   state.currentPage = 1;
   Actions.applySearchFilter();
   Render.table();
