@@ -43,12 +43,12 @@
       <div class="row g-3 align-items-end">
         <div class="col-md-3 col-6 col-lg-2">
           <label class="form-label mb-1">Pencarian</label>
-          <input id="searchBox" class="form-control" placeholder="Cari nama, resi, kurir, status, dll..." />
+          <input id="searchBox" class="form-control" placeholder="Nama, resi, kurir, status, dll..." />
         </div>
         <div class="col-md-2 col-6 col-lg-2">
           <label class="form-label mb-1">Filter Status</label>
           <select id="filterStatus" class="form-select">
-            <option value="">— Semua Status —</option>
+            <option value="">Semua Status</option>
             <!-- opsi dinamis terisi saat load -->
           </select>
         </div>
@@ -249,7 +249,7 @@ _*Ringkasan Tagihan*_
 > Anda hemat Rp {HEMAT}
 --------------------------------------
 *Total Tagihan COD : Rp {TOTAL}*
-_* Ongkir sudah termasuk biaya COD_`,
+_Ongkir sudah termasuk biaya COD_`,
   reminder: `Selamat pagi Pak/Bu {NAMA} 🙏😊
 
 Alhamdulillah obatnya sudah sampai ya.
@@ -279,7 +279,7 @@ const state = {
   currentStatus: "",
   dateStart: null,   // tanggal awal filter
   dateEnd: null,  
-  hargaSatuan: 269_000,
+  hargaSatuan: 355_000,
   waContextIndex: null // index row saat buka WA modal
 };
 
