@@ -211,13 +211,12 @@ let VISIBLE_COLUMNS = [
 ];
 
 const WATemplates = {
-  infopesanan: "Halo Pak/Bu {NAMA}, pesanan Anda *{OBATNYA}* pada tanggal {TGLORDER} sudah diproses & segera dikirimkan menggunakan ekspedisi {KURIRE} dengan No. Resi *{NORESI}*.",
-  infotracking: "Halo Pak/Bu {NAMA}, Pesanan Anda {OBATNYA} dengan nomor resi *{NORESI}* status saat ini {STATUS}. *{TRACKING}* di update pada *{TGLUPDATE}*. Terima kasih :)",
+  infopesanan: "Halo Pak/Bu {NAMA} perkenalkan saya Kiya, admin dari _dr. Hisyam Aziz_ di Klinik Nakara mau menginformasikan pesanan Anda *{OBATNYA}* pada tanggal {TGLORDER} sudah diproses & segera dikirimkan menggunakan ekspedisi {KURIRE} dengan No. Resi *{NORESI}*, Terima Kasih :).",
+  infotracking: "Halo Pak/Bu {NAMA} perkenalkan saya Kiya, admin dari _dr. Hisyam Aziz_ di Klinik Nakara mau menginformasikan Pesanan Anda {OBATNYA} dengan nomor resi *{NORESI}* status saat ini {STATUS}. *{TRACKING}* di update pada *{TGLUPDATE}*. Terima kasih :)",
   followup: "Halo Pak/Bu {NAMA}, Bagaimana perkembangannya setelah konsumsi {OBATNYA}?",
   invoice: `*DATA PESANAN*
----------------------------------------------
 _{TGLORDER}_
-
+===========================
 _*Info Pemesan*_
 {NAMA} | 62{WHATSAPP}
 {DETAILALAMAT}
@@ -230,13 +229,12 @@ Pembayaran {PAYMENT}
 _*Info Pengiriman*_
 No. Resi  : {NORESI}
 Ekspedisi : {KURIRE}
-~~~~~~~~~~~~~~~~~~~~~~~
-~~~~~~~~~~~~~~~~~~~~~~~
+===========================
+===========================
 
 *INVOICE*
----------------------------------------------
 _Kepada Pak/Bu {NAMA}_
-
+--------------------------------------
 _*Ringkasan Pesanan*_
 - {ITEMS}
 
