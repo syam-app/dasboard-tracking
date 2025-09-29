@@ -66,10 +66,10 @@
         <div class="col-md-2">
           <label class="form-label mb-1">Baris / Hal</label>
           <select id="rowsPerPage" class="form-select">
-            <option>5</option>
             <option>10</option>
             <option>25</option>
             <option>50</option>
+            <option>100</option>
           </select>
         </div>
         <div class="col-md-3 d-flex gap-2">
@@ -118,7 +118,7 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Batal</button>
-        <button class="btn btn-primary" type="submit"><i class="bi bi-save me-1"></i>Simpan</button>
+        <button id="btneditdata" class="btn btn-primary" type="submit"><i class="bi bi-save me-1"></i>Simpan</button>
       </div>
     </form>
   </div>
@@ -144,7 +144,7 @@
               <option value="invoice">Invoice</option>
               <option value="infopesanan">Info Pesanan</option>
               <option value="infotracking">Info Tracking</option>
-              <option value="followup">Follow Up</option>
+              <option value="Followup">Follow Up</option>
               <option value="reminder">Pengingat</option>
             </select>
           </div>
@@ -201,19 +201,19 @@ const db = getDatabase(app);
 
 /* ===================== 2) Konstanta & State ===================== */
 const HEADERS = [
-  "TGLORDER","NAMA","WHATSAPP","BARANG","ALAMAT","DETAILALAMAT","PAYMENT",
+  "TGLORDER","NAMA","WHATSAPP","KETERANGAN","BARANG","ALAMAT","DETAILALAMAT","PAYMENT",
   "NORESI","KURIR","PELACAKANTERBARU","TANGGALUPDATE","STATUS","DURASIKIRIM","MODAL","OMSET","PROFIT"
 ];
 let VISIBLE_COLUMNS = [
   "TGLORDER","NAMA","WHATSAPP","BARANG","ALAMAT","PAYMENT",
   "NORESI","KURIR","PELACAKANTERBARU","TANGGALUPDATE","STATUS",
-  "DURASIKIRIM","LASTUPDATE","PROFIT"
+  "DURASIKIRIM","KETERANGAN","LASTUPDATE","PROFIT"
 ];
 
 const WATemplates = {
   infopesanan: "Halo Pak/Bu {NAMA} perkenalkan saya Kiya, admin dari _dr. Hisyam Aziz_ di Klinik Nakara mau menginformasikan pesanan Anda *{OBATNYA}* pada tanggal {TGLORDER} sudah diproses & segera dikirimkan menggunakan ekspedisi {KURIRE} dengan No. Resi *{NORESI}*, Terima Kasih :).",
   infotracking: "Halo Pak/Bu {NAMA} perkenalkan saya Kiya, admin dari _dr. Hisyam Aziz_ di Klinik Nakara mau menginformasikan Pesanan Anda {OBATNYA} dengan nomor resi *{NORESI}* status saat ini {STATUS}. *{TRACKING}* di update pada *{TGLUPDATE}*. Terima kasih :)",
-  followup: "Halo Pak/Bu {NAMA}, Bagaimana perkembangannya setelah konsumsi {OBATNYA}?",
+  Followup: "Halo Pak/Bu {NAMA}, Bagaimana perkembangannya setelah konsumsi {OBATNYA}?",
   invoice: `*DATA PESANAN*
 _{TGLORDER}_
 ===========================
@@ -268,7 +268,7 @@ const state = {
   pageData: [],       // data pada halaman aktif
   totalRows: 0,
   currentPage: 1,
-  rowsPerPage: 5,
+  rowsPerPage: 10,
   currentSearch: "",
   currentStatus: "",
   dateStart: null,   // tanggal awal filter
@@ -490,6 +490,11 @@ const Render = {
         if (col === "TGLORDER" || col === "TANGGALUPDATE") val = Utils.formatDate(val);
         if (col === "KURIR") val = Utils.formatKurir(val);
         if (col === "PROFIT")val = Utils.formatRupiah(val);
+          if (col === "KETERANGAN") {
+    // tampil per baris
+    const items = (val || "").split(",").filter(Boolean);
+    val = items.join("<br>");
+  }
         cells += `<td>${val}</td>`;
       });
 
@@ -678,16 +683,52 @@ const Actions = {
     if (!row) return;
 
     // build inputs dari HEADERS
-    HEADERS.forEach((col, i) => {
-      const val = row[i] ?? "";
-      const formGroup = document.createElement("div");
-      formGroup.className = "mb-3";
-      formGroup.innerHTML = `
-        <label class="form-label">${col}</label>
-        <input type="text" class="form-control" name="col_${i}" value="${String(val).replace(/"/g,'&quot;')}">
+// build inputs dari HEADERS
+HEADERS.forEach((col, i) => {
+  const val = row[i] ?? "";
+  const formGroup = document.createElement("div");
+  formGroup.className = "mb-3";
+
+  if (col === "KETERANGAN") {
+    // daftar opsi keterangan
+    const options = [
+      "New Buyer",
+      "Repeat Order",
+      "Followup-1",
+      "Followup-2",
+      "Followup-3",
+      "Followup-4"
+    ];
+
+    // kalau ada data di DB, pecah string jadi array
+    const selected = (val || "").split(",");
+
+    let html = `<label class="form-label">${col}</label><div>`;
+    options.forEach(opt => {
+      const checked = selected.includes(opt) ? "checked" : "";
+      html += `
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" 
+                 name="col_${i}" value="${opt}" ${checked}>
+          <label class="form-check-label">${opt}</label>
+        </div>
       `;
-      modalBody.appendChild(formGroup);
     });
+    html += `</div>`;
+    formGroup.innerHTML = html;
+
+  } else {
+    // default input text
+    formGroup.innerHTML = `
+      <label class="form-label">${col}</label>
+      <input type="text" class="form-control" name="col_${i}" 
+             value="${String(val).replace(/"/g,'&quot;')}">
+    `;
+  }
+
+  modalBody.appendChild(formGroup);
+});
+
 
     // hidden index
     const hidden = document.createElement("input");
@@ -705,7 +746,15 @@ const Actions = {
     const localIndex = parseInt(fd.get("localIndex"), 10);
 
     // reconstruct row array
-    const newRow = HEADERS.map((_, i) => fd.get(`col_${i}`) ?? "");
+const newRow = HEADERS.map((col, i) => {
+  if (col === "KETERANGAN") {
+    // ambil semua checkbox yg tercentang
+    const checked = e.currentTarget.querySelectorAll(`input[name="col_${i}"]:checked`);
+    const values = Array.from(checked).map(cb => cb.value);
+    return values.join(","); // simpan sebagai string
+  }
+  return fd.get(`col_${i}`) ?? "";
+});
 
     // hitung PROFIT dari OMSET - MODAL
 const idxModal = HEADERS.indexOf("MODAL");
@@ -844,7 +893,7 @@ newRow[idxProfit] = (omset - modal).toString();
     if (!resi || !kurir) return alert("Nomor resi atau kurir kosong!");
 
     try {
-      const url = `https://api.binderbyte.com/v1/track?api_key=7dfb0627d2a03a05e81b82f4565f6b1e1517f280708a6cc9644b58ff6330a793&courier=${encodeURIComponent(kurir)}&awb=${encodeURIComponent(resi)}`;
+      const url = `https://api.binderbyte.com/v1/track?api_key=4a914b4d4b4f3e717551b69a0a855dacdc72f87748a0d525958b0fe57178f4c7&courier=${encodeURIComponent(kurir)}&awb=${encodeURIComponent(resi)}`;
       const response = await fetch(url);
       if (!response.ok) throw new Error("Gagal fetch BinderByte");
 
